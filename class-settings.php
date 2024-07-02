@@ -39,9 +39,9 @@ abstract class Settings extends Singleton
 
         add_settings_section(
             $name . '_section',
-            __($name . '--title', $this->group_name),
+            __($name . '--title', 'wpct'),
             function () use ($name) {
-                $title = __($name . '--description', $this->group_name);
+                $title = __($name . '--description', 'wpct');
                 echo "<p>{$title}</p>";
             },
             $this->group_name,
@@ -59,7 +59,7 @@ abstract class Settings extends Singleton
         $field_id = $setting_name . '__' . $field_name;
         add_settings_field(
             $field_name,
-            __($field_id . '--label', $this->group_name),
+            __($field_id . '--label', 'wpct'),
             function () use ($setting_name, $field_name) {
                 echo $this->field_render($setting_name, $field_name);
             },
