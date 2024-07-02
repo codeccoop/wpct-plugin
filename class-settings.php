@@ -1,6 +1,6 @@
 <?php
 
-namespace WPCT_ERP_FORMS\Abstract;
+namespace WPCT_ABSTRACT;
 
 class Undefined
 {
@@ -9,20 +9,7 @@ class Undefined
 abstract class Settings extends Singleton
 {
     protected $group_name;
-    private $_defaults = [
-        'wpct-erp-forms_general' => [
-            'notification_receiver' => 'admin@example.coop'
-        ],
-        'wpct-erp-forms_api' => [
-            'endpoints' => [
-                [
-                    'form_id' => 0,
-                    'endpoint' => '/api/private/crm-lead',
-                    'ref' => 'ref',
-                ]
-            ]
-        ]
-    ];
+    protected $_default = [];
 
     abstract public function register();
 
@@ -38,14 +25,15 @@ abstract class Settings extends Singleton
 
     public function register_setting($name)
     {
-        $defaults = $this->get_defaults($name);
+        $default = $this->get_default($name);
+        $default = $this->get_default($name, $default);
         register_setting(
             $this->group_name,
             $name,
             [
                 'type' => 'array',
                 'show_in_rest' => false,
-                'default' => $defaults,
+                'default' => $default,
             ],
         );
 
@@ -59,9 +47,9 @@ abstract class Settings extends Singleton
             $this->group_name,
         );
 
-        $this->_defaults[$name] = $defaults;
+        $this->_default[$name] = $default;
 
-        foreach (array_keys($defaults) as $field) {
+        foreach (array_keys($default) as $field) {
             $this->register_field($field, $name);
         }
     }
@@ -120,7 +108,7 @@ abstract class Settings extends Singleton
 
     public function input_render($setting, $field, $value)
     {
-        $default_value = $this->get_defaults($setting); //, $field);
+        $default_value = $this->get_default($setting);
         $keys = explode('][', $field);
         $is_list = is_list($default_value);
         for ($i = 0; $i < count($keys); $i++) {
@@ -165,16 +153,15 @@ abstract class Settings extends Singleton
 
     public function control_render($setting, $field)
     {
-        $defaults = $this->get_defaults($setting);
+        $default = $this->get_default($setting);
         ob_start();
         ?>
         <div class="<?= $setting; ?>__<?= $field ?>--controls">
             <button class="button button-primary" data-action="add">Add</button>
             <button class="button button-secondary" data-action="remove">Remove</button>
         </div>
-		<?php
-        $script_path = dirname(__FILE__, 2) . '/includes/fieldset-control-js.php';
-        include $script_path;
+        <?php include 'fieldset-control-js.php' ?>
+<?php
         return ob_get_clean();
     }
 
@@ -185,31 +172,31 @@ abstract class Settings extends Singleton
 
     public function option_getter($setting, $option)
     {
-        $defaults = $this->get_defaults($setting, $option);
-        $setting = get_option($setting) ? get_option($setting) : [];
+        $default = $this->get_default($setting, $option);
+        $setting = get_option($setting) ?: [];
         if (!key_exists($option, $setting)) {
             return null;
         }
 
         if (empty($setting[$option])) {
-            return $defaults;
+            return $default;
         } elseif (is_list($setting[$option])) {
-            // $setting[$option] = array_map($setting[$option])
+            // $setting[$option] = array_map($setting[$option]);
         }
 
         return $setting[$option];
     }
 
-    public function get_defaults($setting_name, $field = null)
+    public function get_default($setting_name, $field = null)
     {
-        $defaults = isset($this->_defaults[$setting_name]) ? $this->_defaults[$setting_name] : [];
-        $defaults = apply_filters($setting_name . '_defaults', $defaults);
+        $default = usset($this->_default[$setting_name]) ?: [];
+        $default = apply_filters($setting_name . '_default', $default);
 
-        if ($field && isset($defaults[$field])) {
-            return $defaults[$field];
+        if ($field && isset($default[$field])) {
+            return $default[$field];
         }
 
-        return $defaults;
+        return $default;
     }
 }
 

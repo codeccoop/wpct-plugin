@@ -1,6 +1,8 @@
 <?php
 
-namespace WPCT_ERP_FORMS\Abstract;
+namespace WPCT_ABSTRACT;
+
+use Exception;
 
 abstract class Singleton
 {
@@ -16,7 +18,7 @@ abstract class Singleton
 
     public function __wakeup()
     {
-        throw new \Exception('Cannot unserialize a singleton.');
+        throw new Exception('Cannot unserialize a singleton.');
     }
 
     public static function get_instance()

@@ -1,17 +1,18 @@
 <?php
 
-namespace WPCT_ERP_FORMS\Abstract;
+namespace WPCT_ABSTRACT;
 
-use WPCT_ERP_FORMS\Menu;
-use WPCT_ERP_FORMS\Settings;
+use WPCT_HTTP\Menu as Menu;
+use WPCT_HTTP\Settings as Settings;
+
+use Exception;
 
 abstract class Plugin extends Singleton
 {
-    protected $name;
-    protected $index;
-    protected $textdomain;
-    private $menu;
-    protected $dependencies = [];
+    protected static $menu;
+    protected static $textdomain;
+    protected static $name;
+    protected static $index;
 
     abstract public function init();
 
@@ -22,18 +23,10 @@ abstract class Plugin extends Singleton
     public function __construct()
     {
         if (empty($this->name) || empty($this->textdomain)) {
-            throw new \Exception('Bad plugin initialization');
+            throw new Exception('Bad plugin initialization');
         }
 
-		if (empty($this->index)) {
-			$this->index = sanitize_title($this->name);
-		}
-        $this->index = dirname(__FILE__, 2) . '/' . $this->index;
-
-        $this->check_dependencies();
-
-        $settings = Settings::get_instance($this->textdomain);
-        $this->menu = Menu::get_instance($this->name, $settings);
+        $this->menu = self::$menu::get_instance(self::$name);
 
         add_action('init', [$this, 'init'], 10);
         add_action('init', function () {
@@ -55,10 +48,15 @@ abstract class Plugin extends Singleton
         return $this->name;
     }
 
-	public function get_index()
-	{
-		return $this->index;
-	}
+    public function get_index()
+    {
+        $index = self::$index;
+        if (empty($index)) {
+            $index = sanitize_title(self::$name);
+        }
+
+        return dirname(__FILE__, 2) . '/' . $index;
+    }
 
     public function get_textdomain()
     {
@@ -67,18 +65,7 @@ abstract class Plugin extends Singleton
 
     public function get_data()
     {
-        return apply_filters('wpct_dc_plugin_data', null, $this->index);
-    }
-
-    private function check_dependencies()
-    {
-        add_filter('wpct_dc_dependencies', function ($dependencies) {
-            foreach ($this->dependencies as $label => $url) {
-                $dependencies[$label] = $url;
-            }
-
-            return $dependencies;
-        });
+        return apply_filters('wpct_plugin_data', null, $this->index);
     }
 
     private function load_textdomain()
