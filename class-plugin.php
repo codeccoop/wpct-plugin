@@ -55,7 +55,7 @@ abstract class Plugin extends Singleton
             $index = sanitize_title(self::$name);
         }
 
-        return dirname(__FILE__, 2) . '/' . $index;
+        return plugin_basename(dirname(__FILE__, 2) . '/' . $index);
     }
 
     public function get_textdomain()
@@ -65,7 +65,14 @@ abstract class Plugin extends Singleton
 
     public function get_data()
     {
-        return apply_filters('wpct_plugin_data', null, $this->index);
+        include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+        $plugins = get_plugins();
+        $plugin_name = $this->get_index();
+        foreach ($plugins as $plugin => $data) {
+            if ($plugin === $plugin_name) {
+                return $data;
+            }
+        }
     }
 
     private function load_textdomain()
