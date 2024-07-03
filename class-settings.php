@@ -11,45 +11,43 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
     abstract class Settings extends Singleton
     {
         protected $group_name;
-        protected $_default = [];
+        protected $defaults = [];
 
         abstract public function register();
 
-        public function __construct($textdomain)
+        public function __construct($group_name)
         {
-            $this->group_name = $textdomain;
+            $this->group_name = $group_name;
         }
 
-        public function get_name()
+        public function get_group_name()
         {
             return $this->group_name;
         }
 
-        public function register_setting($name)
+        public function register_setting($name, $default)
         {
-            $default = $this->get_default($name);
-            $default = $this->get_default($name, $default);
             register_setting(
-                $this->group_name,
-                $name,
+                $this->group_name, // group
+                $name, // name
                 [
                     'type' => 'array',
                     'show_in_rest' => false,
                     'default' => $default,
-                ],
+                ], // args
             );
 
             add_settings_section(
-                $name . '_section',
-                __($name . '--title', 'wpct'),
+                $name . '_section', // id
+                __($name . '--title', 'wpct'), // title
                 function () use ($name) {
                     $title = __($name . '--description', 'wpct');
                     echo "<p>{$title}</p>";
-                },
-                $this->group_name,
+                }, // render callback
+                $this->group_name, // page slug
             );
 
-            $this->_default[$name] = $default;
+            $this->defaults[$name] = $default;
 
             foreach (array_keys($default) as $field) {
                 $this->register_field($field, $name);
@@ -60,20 +58,20 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         {
             $field_id = $setting_name . '__' . $field_name;
             add_settings_field(
-                $field_name,
-                __($field_id . '--label', 'wpct'),
+                $field_name, // field name
+                __($field_id . '--label', 'wpct'), // field label
                 function () use ($setting_name, $field_name) {
                     echo $this->field_render($setting_name, $field_name);
-                },
-                $this->group_name,
-                $setting_name . '_section',
+                }, // render callback
+                $this->group_name, // page slug
+                $setting_name . '_section', // section
                 [
                     'class' => $field_id,
-                ]
+                ] // args
             );
         }
 
-        public function field_render()
+        protected function field_render()
         {
             $args = func_get_args();
             $setting = $args[0];
@@ -108,7 +106,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             }
         }
 
-        public function input_render($setting, $field, $value)
+        private function input_render($setting, $field, $value)
         {
             $default_value = $this->get_default($setting);
             $keys = explode('][', $field);
@@ -134,7 +132,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             }
         }
 
-        public function fieldset_render($setting, $field, $data)
+        private function fieldset_render($setting, $field, $data)
         {
             $table_id = $setting . '__' . str_replace('][', '_', $field);
             $fieldset = "<table id='{$table_id}'>";
@@ -153,7 +151,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return $fieldset;
         }
 
-        public function control_render($setting, $field)
+        private function control_render($setting, $field)
         {
             $default = $this->get_default($setting);
             ob_start();
@@ -167,12 +165,12 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return ob_get_clean();
         }
 
-        public function control_style($setting, $field)
+        private function control_style($setting, $field)
         {
             return "<style>#{$setting}__{$field} td td,#{$setting}__{$field} td th{padding:0}#{$setting}__{$field} table table{margin-bottom:1rem}</style>";
         }
 
-        public function option_getter($setting, $option)
+        private function option_getter($setting, $option)
         {
             $default = $this->get_default($setting, $option);
             $setting = get_option($setting) ?: [];
@@ -189,9 +187,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return $setting[$option];
         }
 
-        public function get_default($setting_name, $field = null)
+        private function get_default($setting_name, $field = null)
         {
-            $default = usset($this->_default[$setting_name]) ?: [];
+            $default = usset($this->defaults[$setting_name]) ?: [];
             $default = apply_filters($setting_name . '_default', $default);
 
             if ($field && isset($default[$field])) {

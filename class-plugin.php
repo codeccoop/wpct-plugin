@@ -8,10 +8,12 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
     abstract class Plugin extends Singleton
     {
-        protected static $menu;
-        protected static $textdomain;
-        protected static $name;
-        protected static $index;
+        protected static $menu_class;
+
+        public static $textdomain;
+        public static $name;
+
+		private $menu;
 
         abstract public function init();
 
@@ -21,11 +23,13 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
         public function __construct()
         {
-            if (empty($this->name) || empty($this->textdomain)) {
+            if (empty(static::$name) || empty(static::$textdomain)) {
                 throw new Exception('Bad plugin initialization');
             }
 
-            $this->menu = self::$menu::get_instance(self::$name);
+            if (static::$menu_class) {
+                $this->menu = static::$menu_class::get_instance(static::$name, static::$textdomain);
+            }
 
             add_action('init', [$this, 'init'], 10);
             add_action('init', function () {
@@ -35,10 +39,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
             add_filter('load_textdomain_mofile', function ($mofile, $domain) {
                 return $this->load_mofile($mofile, $domain);
             }, 10, 2);
-
-            add_filter('wpct_is_plugin_active', function ($_, $plugin_name) {
-                return self::is_active($plugin_name);
-            }, 1);
         }
 
         public function get_menu()
@@ -48,22 +48,17 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
         public function get_name()
         {
-            return $this->name;
+            return static::$name;
         }
 
         public function get_index()
         {
-            $index = self::$index;
-            if (empty($index)) {
-                $index = sanitize_title(self::$name);
-            }
-
-            return plugin_basename(dirname(__FILE__, 2) . '/' . $index);
+            return plugin_basename(__FILE__);
         }
 
         public function get_textdomain()
         {
-            return $this->textdomain;
+            return static::$textdomain;
         }
 
         public function get_data()
@@ -84,9 +79,9 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
             $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
 
             load_plugin_textdomain(
-                $this->textdomain,
+                static::$textdomain,
                 false,
-                dirname($this->index) . $domain_path,
+                dirname($this->get_index()) . $domain_path,
             );
         }
 
@@ -95,38 +90,45 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
             $data = $this->get_data();
             $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
 
-            if ($domain === $this->textdomain && strpos($mofile, WP_LANG_DIR . '/plugins/') === false) {
+            if ($domain === static::$textdomain && strpos($mofile, WP_LANG_DIR . '/plugins/') === false) {
                 $locale = apply_filters('plugin_locale', determine_locale(), $domain);
-                $mofile = dirname($this->index) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
+                $mofile = dirname($this->get_index()) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
             }
 
             return $mofile;
         }
 
-        private function is_active($plugin_name)
-        {
-            include_once(ABSPATH . 'wp-admin/includes/plugin.php');
-            $plugins = get_plugins();
 
-            if (is_multisite()) {
-                $actives = apply_filters('active_plugins', array_map(function ($plugin_path) {
-                    return plugin_basename($plugin_path);
-                }, wp_get_active_network_plugins()));
-            } else {
-                $actives = apply_filters('active_plugins', get_option('active_plugins'));
+    }
+
+endif;
+
+if (!function_exists('\WPCT_ABSTRACT\is_plugin_active')) :
+
+    add_filter('wpct_is_plugin_active', '\WPCT_ABSTRACT\is_plugin_active');
+    function is_plugin_active($plugin_name)
+    {
+        include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+        $plugins = get_plugins();
+
+        if (is_multisite()) {
+            $actives = apply_filters('active_plugins', array_map(function ($plugin_path) {
+                return plugin_basename($plugin_path);
+            }, wp_get_active_network_plugins()));
+        } else {
+            $actives = apply_filters('active_plugins', get_option('active_plugins'));
+        }
+
+        $actives = array_reduce(array_keys($plugins), function ($carry, $plugin_path) use ($plugins, $actives) {
+            if (in_array($plugin_path, $actives)) {
+                $carry[$plugin_path] = $plugins[$plugin_path];
             }
 
-            $actives = array_reduce(array_keys($plugins), function ($carry, $plugin_path) use ($plugins, $actives) {
-                if (in_array($plugin_path, $actives)) {
-                    $carry[$plugin_path] = $plugins[$plugin_path];
-                }
+            return $carry;
+        }, []);
 
-                return $carry;
-            }, []);
-
-            $plugin_name = plugin_basename($plugin_name);
-            return in_array($plugin_name, array_keys($actives));
-        }
+        $plugin_name = plugin_basename($plugin_name);
+        return in_array($plugin_name, array_keys($actives));
     }
 
 endif;
