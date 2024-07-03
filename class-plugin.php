@@ -4,7 +4,7 @@ namespace WPCT_ABSTRACT;
 
 use Exception;
 
-if (!class_exists('Plugin')) :
+if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
     abstract class Plugin extends Singleton
     {

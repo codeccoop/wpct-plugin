@@ -2,7 +2,7 @@
 
 namespace WPCT_ABSTRACT;
 
-if (!class_exists('Settings')) :
+if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
     class Undefined
     {

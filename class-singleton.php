@@ -4,7 +4,7 @@ namespace WPCT_ABSTRACT;
 
 use Exception;
 
-if (!class_exists('Singleton')) :
+if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
 
     abstract class Singleton
     {
