@@ -204,7 +204,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
 endif;
 
-if (!function_exists('is_list')) :
+if (!function_exists('\WPCT_ABSTRACT\is_list')) :
 
     function is_list($arr)
     {
