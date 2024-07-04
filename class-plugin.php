@@ -3,6 +3,7 @@
 namespace WPCT_ABSTRACT;
 
 use Exception;
+use ReflectionClass;
 
 if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
@@ -13,7 +14,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         public static $textdomain;
         public static $name;
 
-		private $menu;
+        private $menu;
 
         abstract public function init();
 
@@ -53,7 +54,9 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
         public function get_index()
         {
-            return plugin_basename(__FILE__);
+            $reflector = new ReflectionClass(get_class($this));
+            $fn = $reflector->getFileName();
+            return plugin_basename($fn);
         }
 
         public function get_textdomain()
@@ -87,12 +90,12 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
         private function load_mofile($mofile, $domain)
         {
-            $data = $this->get_data();
-            $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
-
             if ($domain === static::$textdomain && strpos($mofile, WP_LANG_DIR . '/plugins/') === false) {
+                $data = $this->get_data();
+                $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
+
                 $locale = apply_filters('plugin_locale', determine_locale(), $domain);
-                $mofile = dirname($this->get_index()) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
+                $mofile = WP_PLUGIN_DIR . '/' . dirname($this->get_index()) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
             }
 
             return $mofile;

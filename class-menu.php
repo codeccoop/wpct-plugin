@@ -32,11 +32,11 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
         private function add_menu()
         {
             add_options_page(
-                $this->name, // page title
-                __($this->name . ' Options', 'wpct'), // menu name
-                'manage_options', // capabilities
-                $this->slug, // menu slug
-                function () { // render callback
+                $this->name,
+                __($this->name, $this->slug),
+                'manage_options',
+                $this->slug,
+                function () {
                     $this->render_page();
                 }
             );
