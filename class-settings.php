@@ -11,9 +11,43 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
     abstract class Settings extends Singleton
     {
         protected $group_name;
-        protected $defaults = [];
+        public static $defaults = [];
 
         abstract public function register();
+
+        public static function get_setting($setting)
+        {
+            return get_option($setting) ?: [];
+        }
+
+        public static function option_getter($setting, $option)
+        {
+            $default = static::get_default($setting, $option);
+            $setting = self::get_setting($setting);
+            if (!key_exists($option, $setting)) {
+                return null;
+            }
+
+            if (empty($setting[$option])) {
+                return $default;
+            } elseif (is_list($setting[$option])) {
+                // $setting[$option] = array_map($setting[$option]);
+            }
+
+            return $setting[$option];
+        }
+
+        public static function get_default($setting_name, $field = null)
+        {
+            $default = isset(static::$defaults[$setting_name]) ? static::$defaults[$setting_name] : [];
+            $default = apply_filters($setting_name . '_default', $default);
+
+            if ($field && isset($default[$field])) {
+                return $default[$field];
+            }
+
+            return $default;
+        }
 
         public function __construct($group_name)
         {
@@ -28,26 +62,26 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         public function register_setting($name, $default)
         {
             register_setting(
-                $this->group_name, // group
-                $name, // name
+                $this->group_name,
+                $name,
                 [
                     'type' => 'array',
                     'show_in_rest' => false,
                     'default' => $default,
-                ], // args
+                ],
             );
 
             add_settings_section(
-                $name . '_section', // id
-                __($name . '--title', 'wpct'), // title
+                $name . '_section',
+                __($name . '--title', $this->group_name),
                 function () use ($name) {
-                    $title = __($name . '--description', 'wpct');
+                    $title = __($name . '--description', $this->group_name);
                     echo "<p>{$title}</p>";
-                }, // render callback
-                $this->group_name, // page slug
+                },
+                $this->group_name,
             );
 
-            $this->defaults[$name] = $default;
+            self::$defaults[$name] = $default;
 
             foreach (array_keys($default) as $field) {
                 $this->register_field($field, $name);
@@ -58,16 +92,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         {
             $field_id = $setting_name . '__' . $field_name;
             add_settings_field(
-                $field_name, // field name
-                __($field_id . '--label', 'wpct'), // field label
+                $field_name,
+                __($field_id . '--label', $this->group_name),
                 function () use ($setting_name, $field_name) {
                     echo $this->field_render($setting_name, $field_name);
-                }, // render callback
-                $this->group_name, // page slug
-                $setting_name . '_section', // section
+                },
+                $this->group_name,
+                $setting_name . '_section',
                 [
                     'class' => $field_id,
-                ] // args
+                ]
             );
         }
 
@@ -89,7 +123,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         {
             $is_root = false;
             if ($value instanceof Undefined) {
-                $value = $this->option_getter($setting, $field);
+                $value = self::option_getter($setting, $field);
                 $is_root = true;
             }
 
@@ -106,9 +140,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             }
         }
 
-        private function input_render($setting, $field, $value)
+        protected function input_render($setting, $field, $value)
         {
-            $default_value = $this->get_default($setting);
+            $default_value = self::get_default($setting);
             $keys = explode('][', $field);
             $is_list = is_list($default_value);
             for ($i = 0; $i < count($keys); $i++) {
@@ -153,7 +187,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         private function control_render($setting, $field)
         {
-            $default = $this->get_default($setting);
+            $default = self::get_default($setting);
             ob_start();
             ?>
         <div class="<?= $setting; ?>__<?= $field ?>--controls">
@@ -168,35 +202,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         private function control_style($setting, $field)
         {
             return "<style>#{$setting}__{$field} td td,#{$setting}__{$field} td th{padding:0}#{$setting}__{$field} table table{margin-bottom:1rem}</style>";
-        }
-
-        private function option_getter($setting, $option)
-        {
-            $default = $this->get_default($setting, $option);
-            $setting = get_option($setting) ?: [];
-            if (!key_exists($option, $setting)) {
-                return null;
-            }
-
-            if (empty($setting[$option])) {
-                return $default;
-            } elseif (is_list($setting[$option])) {
-                // $setting[$option] = array_map($setting[$option]);
-            }
-
-            return $setting[$option];
-        }
-
-        private function get_default($setting_name, $field = null)
-        {
-            $default = usset($this->defaults[$setting_name]) ?: [];
-            $default = apply_filters($setting_name . '_default', $default);
-
-            if ($field && isset($default[$field])) {
-                return $default[$field];
-            }
-
-            return $default;
         }
     }
 
