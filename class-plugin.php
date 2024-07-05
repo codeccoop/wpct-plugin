@@ -108,8 +108,8 @@ endif;
 
 if (!function_exists('\WPCT_ABSTRACT\is_plugin_active')) :
 
-    add_filter('wpct_is_plugin_active', '\WPCT_ABSTRACT\is_plugin_active');
-    function is_plugin_active($plugin_name)
+    add_filter('wpct_is_plugin_active', '\WPCT_ABSTRACT\is_plugin_active', 10, 2);
+    function is_plugin_active($_, $plugin_name)
     {
         include_once(ABSPATH . 'wp-admin/includes/plugin.php');
         $plugins = get_plugins();
