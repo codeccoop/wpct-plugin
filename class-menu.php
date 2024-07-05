@@ -24,7 +24,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
                 $this->add_menu();
             });
 
-            add_action('admin_init', function () {
+            add_action('init', function () {
                 $this->settings->register();
             });
         }

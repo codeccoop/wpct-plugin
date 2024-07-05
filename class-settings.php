@@ -11,13 +11,14 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
     abstract class Settings extends Singleton
     {
         protected $group_name;
+        public static $schemas = [];
         public static $defaults = [];
 
         abstract public function register();
 
         public static function get_setting($setting)
         {
-            return get_option($setting) ?: [];
+            return get_option($setting, []);
         }
 
         public static function option_getter($setting, $option)
@@ -49,6 +50,18 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return $default;
         }
 
+        public static function get_schema($setting_name, $prop = null)
+        {
+            $schema = isset(static::$schemas[$setting_name]) ? static::$schemas[$setting_name] : [];
+            $schema = apply_filters($setting_name . '_schema', $schema);
+
+            if ($prop && isset($schema['properties'][$prop])) {
+                return $schema['properties'][$prop];
+            }
+
+            return $schema;
+        }
+
         public function __construct($group_name)
         {
             $this->group_name = $group_name;
@@ -59,36 +72,49 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return $this->group_name;
         }
 
-        public function register_setting($name, $default)
+        public function register_setting($name, $schema = null, $default = [])
         {
+            self::$schemas[$name] = $schema;
+            self::$defaults[$name] = $default;
+
+            $default = self::get_default($name);
+            $schema = self::get_schema($name);
+
             register_setting(
                 $this->group_name,
                 $name,
                 [
-                    'type' => 'array',
-                    'show_in_rest' => false,
+                    'type' => 'object',
+                    'show_in_rest' => $schema ? [
+                        'name' => $name,
+                        'schema' => [
+                            'type' => 'object',
+                            'properties' => $schema
+                        ],
+                    ] : false,
+                    'type' => 'object',
                     'default' => $default,
                 ],
             );
 
-            add_settings_section(
-                $name . '_section',
-                __($name . '--title', $this->group_name),
-                function () use ($name) {
-                    $title = __($name . '--description', $this->group_name);
-                    echo "<p>{$title}</p>";
-                },
-                $this->group_name,
-            );
+            add_action('admin_init', function () use ($name) {
+                add_settings_section(
+                    $name . '_section',
+                    __($name . '--title', $this->group_name),
+                    function () use ($name) {
+                        $title = __($name . '--description', $this->group_name);
+                        echo "<p>{$title}</p>";
+                    },
+                    $this->group_name,
+                );
 
-            self::$defaults[$name] = $default;
-
-            foreach (array_keys($default) as $field) {
-                $this->register_field($field, $name);
-            }
+                foreach (array_keys(self::$defaults[$name]) as $field) {
+                    $this->add_settings_field($field, $name);
+                }
+            });
         }
 
-        public function register_field($field_name, $setting_name)
+        private function add_settings_field($field_name, $setting_name)
         {
             $field_id = $setting_name . '__' . $field_name;
             add_settings_field(
@@ -142,7 +168,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         protected function input_render($setting, $field, $value)
         {
-            $default_value = self::get_default($setting);
+            $default_value = self::get_schema($setting);
             $keys = explode('][', $field);
             $is_list = is_list($default_value);
             for ($i = 0; $i < count($keys); $i++) {
