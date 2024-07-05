@@ -72,6 +72,18 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return $this->group_name;
         }
 
+        public function get_settings()
+        {
+            $settings = [];
+            foreach (array_keys(self::$defaults) as $setting) {
+                if (strstr($setting, $this->group_name)) {
+                    $settings[] = $setting;
+                }
+            }
+
+            return $settings;
+        }
+
         public function register_setting($name, $schema = null, $default = [])
         {
             self::$schemas[$name] = $schema;
@@ -81,7 +93,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             $schema = self::get_schema($name);
 
             register_setting(
-                $this->group_name,
+                $name,
                 $name,
                 [
                     'type' => 'object',
@@ -105,7 +117,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                         $title = __($name . '--description', $this->group_name);
                         echo "<p>{$title}</p>";
                     },
-                    $this->group_name,
+                    $name,
                 );
 
                 foreach (array_keys(self::$defaults[$name]) as $field) {
@@ -123,7 +135,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 function () use ($setting_name, $field_name) {
                     echo $this->field_render($setting_name, $field_name);
                 },
-                $this->group_name,
+                $setting_name,
                 $setting_name . '_section',
                 [
                     'class' => $field_id,
