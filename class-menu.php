@@ -44,7 +44,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
         {
             $page_settings = $this->settings->get_settings();
             $tabs = array_reduce($page_settings, function ($carry, $setting) {
-                $carry[$setting] = __($setting, $this->slug);
+                $carry[$setting] = __($setting . '--title', $this->slug);
                 return $carry;
             }, []);
             $current_tab = isset($_GET['tab']) ? $_GET['tab'] : array_key_first($tabs);
