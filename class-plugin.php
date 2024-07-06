@@ -28,7 +28,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
                 throw new Exception('Bad plugin initialization');
             }
 
-            if (static::$menu_class) {
+            if (static::$menu_class && $this->is_active()) {
                 $this->menu = static::$menu_class::get_instance(static::$name, static::$textdomain);
             }
 
@@ -74,6 +74,11 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
                     return $data;
                 }
             }
+        }
+
+        public function is_active()
+        {
+            return apply_filters('wpct_is_plugin_active', false, $this->get_index());
         }
 
         private function load_textdomain()

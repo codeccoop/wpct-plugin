@@ -2,7 +2,7 @@
 // Script to be buffered from settings class
 $default_value = $default[$field][0];
 $is_array = is_array($default_value);
-$table_id = $setting . '__' . str_replace('][', '_', $field);
+$table_id = $setting_name . '__' . str_replace('][', '_', $field);
 ?>
 
 <script>

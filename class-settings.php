@@ -13,53 +13,47 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         protected $group_name;
         public static $schemas = [];
         public static $defaults = [];
+        private static $cache = [];
 
         abstract public function register();
 
-        public static function get_setting($setting)
+        public static function get_setting($group_name, $setting, $field = null)
         {
-            return get_option($setting, []);
-        }
+            $default = static::get_default($group_name, $setting);
 
-        public static function option_getter($setting, $option)
-        {
-            $default = static::get_default($setting, $option);
-            $setting = self::get_setting($setting);
-            if (!key_exists($option, $setting)) {
-                return null;
+            $setting_name = $group_name . '_' . $setting;
+            $setting = isset(static::$cache[$setting_name]) ? static::$cache[$setting_name] : get_option($setting_name, $default);
+
+            if ($field === null) {
+                return $setting;
             }
 
-            if (empty($setting[$option])) {
-                return $default;
-            } elseif (is_list($setting[$option])) {
-                // $setting[$option] = array_map($setting[$option]);
-            }
-
-            return $setting[$option];
+            return isset($setting[$field]) ? $setting[$field] : null;
         }
 
-        public static function get_default($setting_name, $field = null)
+        public static function get_default($group_name, $setting, $field = null)
         {
+            $setting_name = $group_name . '_' . $setting;
             $default = isset(static::$defaults[$setting_name]) ? static::$defaults[$setting_name] : [];
             $default = apply_filters($setting_name . '_default', $default);
 
-            if ($field && isset($default[$field])) {
-                return $default[$field];
+            if ($field === null) {
+                return $default;
             }
-
-            return $default;
+            return isset($default[$field]) ? $default[$field] : null;
         }
 
-        public static function get_schema($setting_name, $prop = null)
+        public static function get_schema($group_name, $setting, $field = null)
         {
+            $setting_name = $group_name . '_' . $setting;
             $schema = isset(static::$schemas[$setting_name]) ? static::$schemas[$setting_name] : [];
             $schema = apply_filters($setting_name . '_schema', $schema);
 
-            if ($prop && isset($schema['properties'][$prop])) {
-                return $schema['properties'][$prop];
+            if ($field === null) {
+                return $schema;
             }
 
-            return $schema;
+            return isset($schema[$field]) ? $schema[$field] : null;
         }
 
         public function __construct($group_name)
@@ -76,7 +70,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         {
             $settings = [];
             foreach (array_keys(self::$defaults) as $setting) {
-                if (strstr($setting, $this->group_name)) {
+                if (strstr($setting, $this->group_name) !== false) {
                     $settings[] = $setting;
                 }
             }
@@ -84,21 +78,22 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return $settings;
         }
 
-        public function register_setting($name, $schema = null, $default = [])
+        public function register_setting($setting, $schema = null, $default = [])
         {
-            self::$schemas[$name] = $schema;
-            self::$defaults[$name] = $default;
+            $setting_name = $this->setting_name($setting);
+            self::$schemas[$setting_name] = $schema;
+            self::$defaults[$setting_name] = $default;
 
-            $default = self::get_default($name);
-            $schema = self::get_schema($name);
+            $default = self::get_default($this->group_name, $setting);
+            $schema = self::get_schema($this->group_name, $setting);
 
             register_setting(
-                $name,
-                $name,
+                $setting_name,
+                $setting_name,
                 [
                     'type' => 'object',
                     'show_in_rest' => $schema ? [
-                        'name' => $name,
+                        'name' => $setting,
                         'schema' => [
                             'type' => 'object',
                             'properties' => $schema
@@ -109,31 +104,32 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 ],
             );
 
-            add_action('admin_init', function () use ($name) {
+            add_action('admin_init', function () use ($setting_name, $setting) {
                 add_settings_section(
-                    $name . '_section',
-                    __($name . '--title', $this->group_name),
-                    function () use ($name) {
-                        $title = __($name . '--description', $this->group_name);
+                    $setting_name . '_section',
+                    __($setting_name . '--title', $this->group_name),
+                    function () use ($setting_name) {
+                        $title = __($setting_name . '--description', $this->group_name);
                         echo "<p>{$title}</p>";
                     },
-                    $name,
+                    $setting_name,
                 );
 
-                foreach (array_keys(self::$defaults[$name]) as $field) {
-                    $this->add_settings_field($field, $name);
+                foreach (array_keys(self::$defaults[$setting_name]) as $field) {
+                    $this->add_settings_field($field, $setting);
                 }
             });
         }
 
-        private function add_settings_field($field_name, $setting_name)
+        private function add_settings_field($field_name, $setting)
         {
+            $setting_name = $this->setting_name($setting);
             $field_id = $setting_name . '__' . $field_name;
             add_settings_field(
                 $field_name,
                 __($field_id . '--label', $this->group_name),
-                function () use ($setting_name, $field_name) {
-                    echo $this->field_render($setting_name, $field_name);
+                function () use ($setting, $field_name) {
+                    echo $this->field_render($setting, $field_name);
                 },
                 $setting_name,
                 $setting_name . '_section',
@@ -161,7 +157,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         {
             $is_root = false;
             if ($value instanceof Undefined) {
-                $value = self::option_getter($setting, $field);
+                $value = self::get_setting($this->group_name, $setting, $field);
                 $is_root = true;
             }
 
@@ -180,7 +176,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         protected function input_render($setting, $field, $value)
         {
-            $default_value = self::get_schema($setting);
+            $setting_name = $this->setting_name($setting);
+            $schema = self::get_schema($this->group_name, $setting);
+            $default_value = self::get_default($this->group_name, $setting);
             $keys = explode('][', $field);
             $is_list = is_list($default_value);
             for ($i = 0; $i < count($keys); $i++) {
@@ -188,7 +186,10 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 if ($is_list) {
                     $key = (int) $key;
                 }
-                $default_value = isset($default_value[$key]) ? $default_value[$key] : $default_value[0];
+                $default_value = $default_value[$key];
+                if ($i === 0) {
+                    $schema = $schema[$key];
+                }
                 $is_list = is_list($default_value);
             }
             $is_bool = is_bool($default_value);
@@ -198,15 +199,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             }
 
             if ($is_bool) {
-                return "<input type='checkbox' name='{$setting}[$field]' " . ($value ? 'checked' : '') . " />";
+                return "<input type='checkbox' name='{$setting_name}[{$field}]' " . ($value ? 'checked' : '') . " />";
             } else {
-                return "<input type='text' name='{$setting}[{$field}]' value='{$value}' />";
+                return "<input type='text' name='{$setting_name}[{$field}]' value='{$value}' />";
             }
         }
 
         private function fieldset_render($setting, $field, $data)
         {
-            $table_id = $setting . '__' . str_replace('][', '_', $field);
+            $setting_name = $this->setting_name($setting);
+            $table_id = $setting_name . '__' . str_replace('][', '_', $field);
             $fieldset = "<table id='{$table_id}'>";
             $is_list = is_list($data);
             foreach (array_keys($data) as $key) {
@@ -225,10 +227,11 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         private function control_render($setting, $field)
         {
-            $default = self::get_default($setting);
+            $setting_name = $this->setting_name($setting);
+            $default = self::get_default($this->group_name, $setting);
             ob_start();
             ?>
-        <div class="<?= $setting; ?>__<?= $field ?>--controls">
+        <div class="<?= $setting_name; ?>__<?= $field ?>--controls">
             <button class="button button-primary" data-action="add">Add</button>
             <button class="button button-secondary" data-action="remove">Remove</button>
         </div>
@@ -239,7 +242,13 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         private function control_style($setting, $field)
         {
-            return "<style>#{$setting}__{$field} td td,#{$setting}__{$field} td th{padding:0}#{$setting}__{$field} table table{margin-bottom:1rem}</style>";
+			$setting_name = $this->setting_name($setting);
+            return "<style>#{$setting_name}__{$field} td td,#{$setting_name}__{$field} td th{padding:0}#{$setting_name}__{$field} table table{margin-bottom:1rem}</style>";
+        }
+
+        private function setting_name($setting)
+        {
+            return $this->group_name . '_' . $setting;
         }
     }
 
