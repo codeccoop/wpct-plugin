@@ -246,7 +246,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return "<style>#{$setting_name}__{$field} td td,#{$setting_name}__{$field} td th{padding:0}#{$setting_name}__{$field} table table{margin-bottom:1rem}</style>";
         }
 
-        private function setting_name($setting)
+        protected function setting_name($setting)
         {
             return $this->group_name . '_' . $setting;
         }
