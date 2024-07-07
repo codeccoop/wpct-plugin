@@ -40,7 +40,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
             );
         }
 
-        private function render_page()
+        protected function render_page()
         {
             $page_settings = $this->settings->get_settings();
             $tabs = array_reduce($page_settings, function ($carry, $setting) {

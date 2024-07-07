@@ -23,6 +23,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
             $setting_name = $group_name . '_' . $setting;
             $setting = isset(static::$cache[$setting_name]) ? static::$cache[$setting_name] : get_option($setting_name, $default);
+            static::$cache[$setting_name] = $setting;
 
             if ($field === null) {
                 return $setting;
