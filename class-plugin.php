@@ -105,8 +105,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
             return $mofile;
         }
-
-
     }
 
 endif;

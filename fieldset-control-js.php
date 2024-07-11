@@ -12,7 +12,7 @@ $table_id = $setting_name . '__' . str_replace('][', '_', $field);
                 return `<table id="<?= $table_id ?>_${index}">
           <?php foreach (array_keys($default_value) as $key) : ?>
             <tr>
-                <th><?= $field ?></th>
+                <th><?= $key ?></th>
                 <td><?= $this->input_render($setting, $field . '][${index}][' . $key, $default_value[$key]); ?></td>
             </tr>
           <?php endforeach; ?>
