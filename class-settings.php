@@ -105,6 +105,12 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 ],
             );
 
+            add_action('update_option', function ($option, $from, $to) use ($setting_name) {
+                if ($option === $setting_name && !empty($to)) {
+                    static::$cache[$setting_name] = $to;
+                }
+            }, 90, 3);
+
             add_action('admin_init', function () use ($setting_name, $setting) {
                 add_settings_section(
                     $setting_name . '_section',
@@ -243,7 +249,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         private function control_style($setting, $field)
         {
-			$setting_name = $this->setting_name($setting);
+            $setting_name = $this->setting_name($setting);
             return "<style>#{$setting_name}__{$field} td td,#{$setting_name}__{$field} td th{padding:0}#{$setting_name}__{$field} table table{margin-bottom:1rem}</style>";
         }
 
