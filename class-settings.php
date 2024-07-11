@@ -94,7 +94,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 [
                     'type' => 'object',
                     'show_in_rest' => $schema ? [
-                        'name' => $setting,
+                        'name' => $setting_name,
                         'schema' => [
                             'type' => 'object',
                             'properties' => $schema
