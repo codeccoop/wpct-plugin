@@ -40,7 +40,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
             );
         }
 
-        protected function render_page()
+        protected function render_page($echo = true)
         {
             $page_settings = $this->settings->get_settings();
             $tabs = array_reduce($page_settings, function ($carry, $setting) {
@@ -48,6 +48,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
                 return $carry;
             }, []);
             $current_tab = isset($_GET['tab']) ? $_GET['tab'] : array_key_first($tabs);
+            ob_start();
             ?>
 			<div class="wrap">
 			<h1><?= get_admin_page_title() ?></h1>
@@ -67,6 +68,11 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
 				</form>
 			</div>
 			<?php
+            $output = ob_get_clean();
+            if ($echo) {
+                echo $output;
+            }
+            return $output;
         }
 
         public function get_name()

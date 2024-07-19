@@ -2,6 +2,8 @@
 
 namespace WPCT_ABSTRACT;
 
+use Error;
+
 if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
     class Undefined
@@ -60,6 +62,10 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         public function __construct($group_name)
         {
             $this->group_name = $group_name;
+
+            add_filter('pre_update_option', function ($value, $option, $from) {
+                return $this->sanitize_option($option, $value);
+            }, 10, 3);
         }
 
         public function get_group_name()
@@ -262,6 +268,70 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         protected function setting_name($setting)
         {
             return $this->group_name . '_' . $setting;
+        }
+
+        private function sanitize_option($option, $value)
+        {
+            $settings = $this->get_settings();
+            if (in_array($option, $settings)) {
+                [$group, $setting] = explode('_', $option);
+                $default = Settings::get_default($group, $setting);
+                if (empty($value)) {
+                    return $default;
+                }
+
+                $schema = Settings::get_schema($group, $setting);
+
+                try {
+                    return $this->sanitize_object($schema, $value, $default);
+                } catch (Error) {
+                    return $default;
+                }
+            }
+
+            return $value;
+        }
+
+        private function sanitize_object($schema, $value, $default)
+        {
+            foreach ($schema as $key => $defn) {
+                if (empty($value[$key])) {
+                    $value[$key] = $default[$key];
+                } else {
+                    if ($defn['type'] === 'array') {
+                        $value[$key] = $this->sanitize_array($defn['items'], $value[$key], $default[$key] ?: []);
+                    } elseif ($defn['type'] === 'object') {
+                        $value[$key] = $this->sanitize_object($defn['properties'], $value[$key], $default[$key] ?: []);
+                    } else {
+                        $value[$key] = empty($value[$key]) ? $default[$key] : $value[$key];
+                    }
+                }
+            }
+
+            foreach (array_keys($value) as $key) {
+                if (!in_array($key, array_keys($schema))) {
+                    unset($value[$key]);
+                };
+            }
+
+            return $value;
+        }
+
+        private function sanitize_array($schema, $value, $defaults)
+        {
+            $default = null;
+            for ($i = 0; $i < count($value); $i++) {
+                $default = count($defaults) > $i ? array_shift($defaults) : $default;
+                if ($schema['type'] === 'array') {
+                    $value[$i] = $this->sanitize_array($schema['items'], $value[$i], $default ?: []);
+                } elseif ($schema['type'] === 'object') {
+                    $value[$i] = $this->sanitize_object($schema['properties'], $value[$i], $default ?: []);
+                } else {
+                    $value[$i] = empty($value[$i]) ? $default[0] : $value[$i];
+                }
+            }
+
+            return $value;
         }
     }
 
