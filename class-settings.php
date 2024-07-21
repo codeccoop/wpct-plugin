@@ -184,7 +184,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 return $this->input_render($setting, $field, $value);
             } else {
                 $fieldset = $this->fieldset_render($setting, $field, $value);
-                if ($is_root) {
+                if ($is_root && is_list($value)) {
                     $fieldset = $this->control_style($setting, $field)
                         . $fieldset . $this->control_render($setting, $field);
                 }
