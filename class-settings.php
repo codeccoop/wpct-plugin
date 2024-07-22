@@ -212,10 +212,10 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 $is_list = is_list($default_value);
             }
             $is_bool = is_bool($default_value);
-            if ($is_bool) {
-                $is_bool = true;
-                $value = 'on' === $value;
-            }
+            // if ($is_bool) {
+            //     $is_bool = true;
+            //     $value = 'on' === $value;
+            // }
 
             if ($is_bool) {
                 return "<input type='checkbox' name='{$setting_name}[{$field}]' " . ($value ? 'checked' : '') . " />";
@@ -296,12 +296,18 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         {
             foreach ($schema as $key => $defn) {
                 if (empty($value[$key])) {
-                    $value[$key] = $default[$key];
+                    if ($defn['type'] === 'boolean') {
+                        $value[$key] = false;
+                    } else {
+                        $value[$key] = $default[$key];
+                    }
                 } else {
                     if ($defn['type'] === 'array') {
                         $value[$key] = $this->sanitize_array($defn['items'], $value[$key], $default[$key] ?: []);
                     } elseif ($defn['type'] === 'object') {
                         $value[$key] = $this->sanitize_object($defn['properties'], $value[$key], $default[$key] ?: []);
+                    } elseif ($defn['type'] === 'boolean') {
+                        $value[$key] = $value[$key] === 'on';
                     } else {
                         $value[$key] = empty($value[$key]) ? $default[$key] : $value[$key];
                     }
