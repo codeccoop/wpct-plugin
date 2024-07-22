@@ -115,13 +115,13 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 if ($option === $setting_name && !empty($to)) {
                     static::$cache[$setting_name] = $value;
                 }
-            }, 90, 2);
+            }, 5, 2);
 
             add_action('update_option', function ($option, $from, $to) use ($setting_name) {
                 if ($option === $setting_name && !empty($to)) {
                     static::$cache[$setting_name] = $to;
                 }
-            }, 90, 3);
+            }, 5, 3);
 
             add_action('admin_init', function () use ($setting_name, $setting) {
                 add_settings_section(
