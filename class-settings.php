@@ -2,23 +2,79 @@
 
 namespace WPCT_ABSTRACT;
 
-use Error;
-
 if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
+    /**
+     * Undefined value.
+     *
+     * @since 1.0.0
+     */
     class Undefined
     {
     };
 
+    /**
+     * Plugin settings abstract class.
+     *
+     * @since 1.0.0
+     */
     abstract class Settings extends Singleton
     {
+        /**
+         * Handle settings group name.
+         *
+         * @since 1.0.0
+         *
+         * @var string $group_name Settings group name.
+         */
         protected $group_name;
+
+        /**
+         * Handle settings schemas.
+         *
+         * @since 1.0.0
+         *
+         * @var string $schemas Settings schemas.
+         */
         public static $schemas = [];
+
+        /**
+         * Handle settings default values.
+         *
+         * @since 1.0.0
+         *
+         * @var string $defaults Settings default values.
+         */
         public static $defaults = [];
+
+        /**
+         * Handle settings cached values.
+         *
+         * @since 1.0.0
+         *
+         * @var string $cache Settings cached values.
+         */
         private static $cache = [];
 
+        /**
+         * Handle settings group name.
+         *
+         * @since 1.0.0
+         *
+         * @var string $group_name Settings group name.
+         */
         abstract public function register();
 
+        /**
+         * Get setting values.
+         *
+         * @since 1.0.0
+         *
+         * @param string $group_name Settings group name.
+         * @param string $setting Setting name.
+         * @param string $field Field name.
+         * @return array|string $value Setting default values.
+         */
         public static function get_setting($group_name, $setting, $field = null)
         {
             $default = static::get_default($group_name, $setting);
@@ -34,6 +90,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return isset($setting[$field]) ? $setting[$field] : null;
         }
 
+        /**
+         * Get setting default values.
+         *
+         * @since 1.0.0
+         *
+         * @param string $group_name Settings group name.
+         * @param string $setting Setting name.
+         * @param string $field Field name.
+         * @return array|string $value Setting default values.
+         */
         public static function get_default($group_name, $setting, $field = null)
         {
             $setting_name = $group_name . '_' . $setting;
@@ -46,6 +112,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return isset($default[$field]) ? $default[$field] : null;
         }
 
+        /**
+         * Get setting schema.
+         *
+         * @since 1.0.0
+         *
+         * @param string $group_name Settings group name.
+         * @param string $setting Setting name.
+         * @param string $field Field name.
+         * @return array $schema Setting or field schema.
+         */
         public static function get_schema($group_name, $setting, $field = null)
         {
             $setting_name = $group_name . '_' . $setting;
@@ -59,20 +135,41 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return isset($schema[$field]) ? $schema[$field] : null;
         }
 
+        /**
+         * Class constructor. Store the group name and hooks to pre_update_option.
+         *
+         * @since 1.0.0
+         *
+         * @param string $group_name Settings group name.
+         */
         public function __construct($group_name)
         {
             $this->group_name = $group_name;
 
             add_filter('pre_update_option', function ($value, $option, $from) {
-                return $this->sanitize_option($option, $value);
+                return $this->sanitize_setting($option, $value);
             }, 10, 3);
         }
 
+        /**
+         * Get settings group name.
+         *
+         * @since 1.0.0
+         *
+         * @return string $group_name Settings group name.
+         */
         public function get_group_name()
         {
             return $this->group_name;
         }
 
+        /**
+         * Return group settings names.
+         *
+         * @since 1.0.0
+         *
+         * @return array $names Settings names.
+         */
         public function get_settings()
         {
             $settings = [];
@@ -85,6 +182,15 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return $settings;
         }
 
+        /**
+         * Register setting.
+         *
+         * @since 1.0.0
+         *
+         * @param string $setting Setting name.
+         * @param array|null $schema Setting schema.
+         * @defaults array $defaults Setting default values.
+         */
         public function register_setting($setting, $schema = null, $default = [])
         {
             $setting_name = $this->setting_name($setting);
@@ -94,6 +200,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             $default = self::get_default($this->group_name, $setting);
             $schema = self::get_schema($this->group_name, $setting);
 
+            // Register setting
             register_setting(
                 $setting_name,
                 $setting_name,
@@ -111,18 +218,21 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 ],
             );
 
+            // Cache data on option creation
             add_action('add_option', function ($option, $value) use ($setting_name) {
                 if ($option === $setting_name && !empty($to)) {
                     static::$cache[$setting_name] = $value;
                 }
             }, 5, 2);
 
+            // Cache data on option update
             add_action('update_option', function ($option, $from, $to) use ($setting_name) {
                 if ($option === $setting_name && !empty($to)) {
                     static::$cache[$setting_name] = $to;
                 }
             }, 5, 3);
 
+            // Add settings section on admin init
             add_action('admin_init', function () use ($setting_name, $setting) {
                 add_settings_section(
                     $setting_name . '_section',
@@ -140,6 +250,14 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             });
         }
 
+        /**
+         * Register setting field.
+         *
+         * @since 1.0.0
+         *
+         * @param string $field_name Field name.
+         * @param string $setting Setting name.
+         */
         private function add_settings_field($field_name, $setting)
         {
             $setting_name = $this->setting_name($setting);
@@ -158,6 +276,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             );
         }
 
+        /**
+         * Render field HTML.
+         *
+         * @since 1.0.0
+         *
+         * @param string $setting Setting name.
+         * @param string $field Field name.
+         * @param string|Undefined $value Field value.
+         * @return string $html Input HTML.
+         */
         protected function field_render()
         {
             $args = func_get_args();
@@ -172,6 +300,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return $this->_field_render($setting, $field, $value);
         }
 
+        /**
+         * Render field HTML.
+         *
+         * @since 1.0.0
+         *
+         * @param string $setting Setting name.
+         * @param string $field Field name.
+         * @param string|Undefined $value Field value.
+         * @return string $html Input HTML.
+         */
         private function _field_render($setting, $field, $value)
         {
             $is_root = false;
@@ -193,6 +331,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             }
         }
 
+        /**
+         * Render input HTML.
+         *
+         * @since 1.0.0
+         *
+         * @param string $setting Setting name.
+         * @param string $field Field name.
+         * @param string $value Field value.
+         * @return string $html Input HTML.
+         */
         protected function input_render($setting, $field, $value)
         {
             $setting_name = $this->setting_name($setting);
@@ -212,10 +360,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 $is_list = is_list($default_value);
             }
             $is_bool = is_bool($default_value);
-            // if ($is_bool) {
-            //     $is_bool = true;
-            //     $value = 'on' === $value;
-            // }
 
             if ($is_bool) {
                 return "<input type='checkbox' name='{$setting_name}[{$field}]' " . ($value ? 'checked' : '') . " />";
@@ -224,6 +368,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             }
         }
 
+        /**
+         * Render fieldset HTML.
+         *
+         * @since 1.0.0
+         *
+         * @param string $setting Setting name.
+         * @param string $field Field name.
+         * @param array $data Setting data.
+         * @return string $html Fieldset HTML.
+         */
         private function fieldset_render($setting, $field, $data)
         {
             $setting_name = $this->setting_name($setting);
@@ -244,6 +398,15 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return $fieldset;
         }
 
+        /**
+         * Render control HTML.
+         *
+         * @since 1.0.0
+         *
+         * @param string $setting Setting name.
+         * @param string $field Field name.
+         * @return string $html Control HTML.
+         */
         private function control_render($setting, $field)
         {
             $setting_name = $this->setting_name($setting);
@@ -259,85 +422,58 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return ob_get_clean();
         }
 
+        /**
+         * Render control style tag.
+         *
+         * @since 1.0.0
+         *
+         * @param string $setting Setting name.
+         * @param string $field Field name.
+         * @return string $tag Style HTML tag with control styles.
+         */
         private function control_style($setting, $field)
         {
             $setting_name = $this->setting_name($setting);
             return "<style>#{$setting_name}__{$field} td td,#{$setting_name}__{$field} td th{padding:0}#{$setting_name}__{$field} table table{margin-bottom:1rem}</style>";
         }
 
+        /**
+         * Return setting full name.
+         *
+         * @since 1.0.0
+         *
+         * @param string $setting Setting name.
+         * @return string $setting_name Setting full name.
+         */
         protected function setting_name($setting)
         {
             return $this->group_name . '_' . $setting;
         }
 
-        private function sanitize_option($option, $value)
+        /**
+         * Sanitize setting data before database inserts.
+         *
+         * @since 1.0.0
+         *
+         * @param string $option Setting name.
+         * @param array $value Setting data.
+         * @return array $value Sanitized setting data.
+         */
+        private function sanitize_setting($option, $value)
         {
             $settings = $this->get_settings();
-            if (in_array($option, $settings)) {
-                [$group, $setting] = explode('_', $option);
-                $default = Settings::get_default($group, $setting);
-                if (empty($value)) {
-                    return $default;
-                }
-
-                $schema = Settings::get_schema($group, $setting);
-
-                try {
-                    return $this->sanitize_object($schema, $value, $default);
-                } catch (Error) {
-                    return $default;
-                }
+            if (!in_array($option, $settings)) {
+                return $value;
             }
 
-            return $value;
-        }
+            [$group, $setting] = explode('_', $option);
+            $schema = Settings::get_schema($group, $setting);
 
-        private function sanitize_object($schema, $value, $default)
-        {
-            foreach ($schema as $key => $defn) {
-                if (empty($value[$key])) {
-                    if ($defn['type'] === 'boolean') {
-                        $value[$key] = false;
-                    } else {
-                        $value[$key] = $default[$key];
-                    }
-                } else {
-                    if ($defn['type'] === 'array') {
-                        $value[$key] = $this->sanitize_array($defn['items'], $value[$key], $default[$key] ?: []);
-                    } elseif ($defn['type'] === 'object') {
-                        $value[$key] = $this->sanitize_object($defn['properties'], $value[$key], $default[$key] ?: []);
-                    } elseif ($defn['type'] === 'boolean') {
-                        $value[$key] = $value[$key] === 'on';
-                    } else {
-                        $value[$key] = empty($value[$key]) ? $default[$key] : $value[$key];
-                    }
-                }
+            if (!rest_validate_value_from_schema($value, $schema)) {
+                return new WP_Error('rest_invalid_schema', 'The setting is not schema conformant', ['value' => $value, 'schema' => $schema]);
             }
 
-            foreach (array_keys($value) as $key) {
-                if (!in_array($key, array_keys($schema))) {
-                    unset($value[$key]);
-                };
-            }
-
-            return $value;
-        }
-
-        private function sanitize_array($schema, $value, $defaults)
-        {
-            $default = null;
-            for ($i = 0; $i < count($value); $i++) {
-                $default = count($defaults) > $i ? array_shift($defaults) : $default;
-                if ($schema['type'] === 'array') {
-                    $value[$i] = $this->sanitize_array($schema['items'], $value[$i], $default ?: []);
-                } elseif ($schema['type'] === 'object') {
-                    $value[$i] = $this->sanitize_object($schema['properties'], $value[$i], $default ?: []);
-                } else {
-                    $value[$i] = empty($value[$i]) ? $default[0] : $value[$i];
-                }
-            }
-
-            return $value;
+            return rest_sanitize_value_from_schema($value, $schema);
         }
     }
 
@@ -345,6 +481,14 @@ endif;
 
 if (!function_exists('\WPCT_ABSTRACT\is_list')) :
 
+    /**
+     * Check if array is positional.
+     *
+     * @since 1.0.0
+     *
+     * @param array $arr Target array.
+     * @return boolean $is_list Result.
+     */
     function is_list($arr)
     {
         if (!is_array($arr)) {
