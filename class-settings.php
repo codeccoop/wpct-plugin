@@ -34,7 +34,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
          *
          * @since 1.0.0
          *
-         * @var string $schemas Settings schemas.
+         * @var array $schemas Settings schemas.
          */
         public static $schemas = [];
 
@@ -43,7 +43,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
          *
          * @since 1.0.0
          *
-         * @var string $defaults Settings default values.
+         * @var array $defaults Settings default values.
          */
         public static $defaults = [];
 
@@ -52,16 +52,14 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
          *
          * @since 1.0.0
          *
-         * @var string $cache Settings cached values.
+         * @var array $cache Settings cached values.
          */
         private static $cache = [];
 
         /**
-         * Handle settings group name.
+         * Register settings method.
          *
          * @since 1.0.0
-         *
-         * @var string $group_name Settings group name.
          */
         abstract public function register();
 

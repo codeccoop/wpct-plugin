@@ -160,7 +160,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
          *
          * @since 1.0.0
          *
-         * @return array $settings Plugin settings.
+         * @return object $settings Plugin settings instance.
          */
         public function get_settings()
         {
