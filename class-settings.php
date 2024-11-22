@@ -184,7 +184,8 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                         'name' => $setting_name,
                         'schema' => [
                             'type' => 'object',
-                            'properties' => $schema
+                            'properties' => $schema,
+                            'additionalProperties' => false,
                         ],
                     ] : false,
                     'type' => 'object',
