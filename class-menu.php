@@ -2,19 +2,19 @@
 
 namespace WPCT_ABSTRACT;
 
+if (!defined('ABSPATH')) {
+    exit();
+}
+
 if (!class_exists('\WPCT_ABSTRACT\Menu')) :
 
     /**
      * Plugin menu abstract class.
-     *
-     * @since 1.0.0
      */
     abstract class Menu extends Singleton
     {
         /**
          * Handle plugin settings class name.
-         *
-         * @since 1.0.0
          *
          * @var string $settings_class Settings class name.
          */
@@ -23,16 +23,12 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
         /**
          * Handle menu name.
          *
-         * @since 1.0.0
-         *
          * @var string $name Menu name.
          */
         protected $name;
 
         /**
          * Handle menu slug.
-         *
-         * @since 1.0.0
          *
          * @var string $settings_class Settings class name.
          */
@@ -41,16 +37,12 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
         /**
          * Handle plugin settings instance.
          *
-         * @since 1.0.0
-         *
          * @var object $settings Settings instance.
          */
         protected $settings;
 
         /**
          * Class constructor. Set attributes and hooks to wp admin hooks.
-         *
-         * @since 1.0.0
          *
          * @param string $name Plugin name.
          * @param string $slug Plugin textdomain.
@@ -72,8 +64,6 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
 
         /**
          * Register plugin options page.
-         *
-         * @since 1.0.0
          */
         private function add_menu()
         {
@@ -90,8 +80,6 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
 
         /**
          * Render menu page HTML.
-         *
-         * @since 1.0.0
          *
          * @param boolean $echo Should put render to the output buffer.
          * @return string|null $render Page content.
@@ -134,8 +122,6 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
         /**
          * Menu name getter.
          *
-         * @since 1.0.0
-         *
          * @return string $name Menu name.
          */
         public function get_name()
@@ -146,8 +132,6 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
         /**
          * Menu slug getter.
          *
-         * @since 1.0.0
-         *
          * @return string $slug Menu slug.
          */
         public function get_slug()
@@ -157,8 +141,6 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
 
         /**
          * Menu settings getter.
-         *
-         * @since 1.0.0
          *
          * @return object $settings Plugin settings instance.
          */

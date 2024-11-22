@@ -5,19 +5,19 @@ namespace WPCT_ABSTRACT;
 use Exception;
 use ReflectionClass;
 
+if (!defined('ABSPATH')) {
+    exit();
+}
+
 if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
     /**
      * Plugin abstract class.
-     *
-     * @since 1.0.0
      */
     abstract class Plugin extends Singleton
     {
         /**
          * Handle plugin menu class name.
-         *
-         * @since 1.0.0
          *
          * @var string $menu_class Menu class name.
          */
@@ -26,16 +26,12 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         /**
          * Handle plugin textdomain.
          *
-         * @since 1.0.0
-         *
          * @var string $textdomain Plugin text domain.
          */
         public static $textdomain;
 
         /**
          * Handle plugin name.
-         *
-         * @since 1.0.0
          *
          * @var string $name Plugin name.
          */
@@ -44,37 +40,27 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         /**
          * Handle plugin menu instance.
          *
-         * @since 1.0.0
-         *
          * @var object $menu Plugin menu instance.
          */
         private $menu;
 
         /**
          * Plugin initializer.
-         *
-         * @since 1.0.0
          */
         abstract public function init();
 
         /**
          * Plugin activation callback.
-         *
-         * @since 1.0.0
          */
         abstract public static function activate();
 
         /**
          * Plugin deactivation callback.
-         *
-         * @since 1.0.0
          */
         abstract public static function deactivate();
 
         /**
          * Plugin constructor. Bind plugin to wp init hook and load textdomain.
-         *
-         * @since 1.0.0
          */
         public function __construct()
         {
@@ -99,8 +85,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         /**
          * Plugin menu getter.
          *
-         * @since 1.0.0
-         *
          * @return object $menu Plugin menu instance.
          */
         public function get_menu()
@@ -111,8 +95,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         /**
          * Plugin name getter.
          *
-         * @since 1.0.0
-         *
          * @return string $name Plugin name.
          */
         public function get_name()
@@ -122,8 +104,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
         /**
          * Plugin index getter.
-         *
-         * @since 1.0.0
          *
          * @return string $index Plugin index file path.
          */
@@ -137,8 +117,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         /**
          * Plugin textdomain getter.
          *
-         * @since 1.0.0
-         *
          * @return string $textdomain Plugin textdomain.
          */
         public function get_textdomain()
@@ -148,8 +126,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
         /**
          * Plugin data getter.
-         *
-         * @since 1.0.0
          *
          * @return array $data Plugin data.
          */
@@ -168,8 +144,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         /**
          * Active state getter.
          *
-         * @since 1.0.0
-         *
          * @return boolean $is_active Plugin active state.
          */
         public function is_active()
@@ -179,8 +153,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
         /**
          * Load plugin textdomain.
-         *
-         * @since 1.0.0
          */
         private function load_textdomain()
         {
@@ -196,8 +168,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
         /**
          * Load plugin mofile.
-         *
-         * @since 1.0.0
          *
          * @param string $mofile Plugin mofile path.
          * @param string $domain Plugin textdomain.
@@ -223,8 +193,6 @@ if (!function_exists('\WPCT_ABSTRACT\is_plugin_active')) :
 
     /**
      * Check if plugin is active
-     *
-     * @since 1.0.0
      */
     function is_plugin_active($plugin_name)
     {
@@ -251,9 +219,9 @@ if (!function_exists('\WPCT_ABSTRACT\is_plugin_active')) :
         return in_array($plugin_name, array_keys($actives));
     }
 
-// Hooks is_plugin_active as filter.
-add_filter('wpct_is_plugin_active', function ($null, $plugin_name) {
-    return \WPCT_ABSTRACT\is_plugin_active($plugin_name);
-}, 10, 2);
+    // Hooks is_plugin_active as filter.
+    add_filter('wpct_is_plugin_active', function ($null, $plugin_name) {
+        return \WPCT_ABSTRACT\is_plugin_active($plugin_name);
+    }, 10, 2);
 
 endif;

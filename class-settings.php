@@ -2,12 +2,14 @@
 
 namespace WPCT_ABSTRACT;
 
+if (!defined('ABSPATH')) {
+    exit();
+}
+
 if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
     /**
      * Undefined value.
-     *
-     * @since 1.0.0
      */
     class Undefined
     {
@@ -15,15 +17,11 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
     /**
      * Plugin settings abstract class.
-     *
-     * @since 1.0.0
      */
     abstract class Settings extends Singleton
     {
         /**
          * Handle settings group name.
-         *
-         * @since 1.0.0
          *
          * @var string $group_name Settings group name.
          */
@@ -32,16 +30,12 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Handle settings schemas.
          *
-         * @since 1.0.0
-         *
          * @var array $schemas Settings schemas.
          */
         public static $schemas = [];
 
         /**
          * Handle settings default values.
-         *
-         * @since 1.0.0
          *
          * @var array $defaults Settings default values.
          */
@@ -50,23 +44,17 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Handle settings cached values.
          *
-         * @since 1.0.0
-         *
          * @var array $cache Settings cached values.
          */
         private static $cache = [];
 
         /**
          * Register settings method.
-         *
-         * @since 1.0.0
          */
         abstract public function register();
 
         /**
          * Get setting values.
-         *
-         * @since 1.0.0
          *
          * @param string $group_name Settings group name.
          * @param string $setting Setting name.
@@ -91,8 +79,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Get setting default values.
          *
-         * @since 1.0.0
-         *
          * @param string $group_name Settings group name.
          * @param string $setting Setting name.
          * @param string $field Field name.
@@ -112,8 +98,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         /**
          * Get setting schema.
-         *
-         * @since 1.0.0
          *
          * @param string $group_name Settings group name.
          * @param string $setting Setting name.
@@ -136,8 +120,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Class constructor. Store the group name and hooks to pre_update_option.
          *
-         * @since 1.0.0
-         *
          * @param string $group_name Settings group name.
          */
         public function __construct($group_name)
@@ -152,8 +134,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Get settings group name.
          *
-         * @since 1.0.0
-         *
          * @return string $group_name Settings group name.
          */
         public function get_group_name()
@@ -163,8 +143,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         /**
          * Return group settings names.
-         *
-         * @since 1.0.0
          *
          * @return array $names Settings names.
          */
@@ -182,8 +160,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         /**
          * Register setting.
-         *
-         * @since 1.0.0
          *
          * @param string $setting Setting name.
          * @param array|null $schema Setting schema.
@@ -251,8 +227,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Register setting field.
          *
-         * @since 1.0.0
-         *
          * @param string $field_name Field name.
          * @param string $setting Setting name.
          */
@@ -277,8 +251,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Render field HTML.
          *
-         * @since 1.0.0
-         *
          * @param string $setting Setting name.
          * @param string $field Field name.
          * @param string|Undefined $value Field value.
@@ -300,8 +272,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         /**
          * Render field HTML.
-         *
-         * @since 1.0.0
          *
          * @param string $setting Setting name.
          * @param string $field Field name.
@@ -331,8 +301,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         /**
          * Render input HTML.
-         *
-         * @since 1.0.0
          *
          * @param string $setting Setting name.
          * @param string $field Field name.
@@ -369,8 +337,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Render fieldset HTML.
          *
-         * @since 1.0.0
-         *
          * @param string $setting Setting name.
          * @param string $field Field name.
          * @param array $data Setting data.
@@ -399,8 +365,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Render control HTML.
          *
-         * @since 1.0.0
-         *
          * @param string $setting Setting name.
          * @param string $field Field name.
          * @return string $html Control HTML.
@@ -423,8 +387,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Render control style tag.
          *
-         * @since 1.0.0
-         *
          * @param string $setting Setting name.
          * @param string $field Field name.
          * @return string $tag Style HTML tag with control styles.
@@ -438,8 +400,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         /**
          * Return setting full name.
          *
-         * @since 1.0.0
-         *
          * @param string $setting Setting name.
          * @return string $setting_name Setting full name.
          */
@@ -450,8 +410,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
         /**
          * Sanitize setting data before database inserts.
-         *
-         * @since 1.0.0
          *
          * @param string $option Setting name.
          * @param array $value Setting data.
@@ -481,8 +439,6 @@ if (!function_exists('\WPCT_ABSTRACT\is_list')) :
 
     /**
      * Check if array is positional.
-     *
-     * @since 1.0.0
      *
      * @param array $arr Target array.
      * @return boolean $is_list Result.

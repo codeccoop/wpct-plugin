@@ -4,26 +4,24 @@ namespace WPCT_ABSTRACT;
 
 use Exception;
 
+if (!defined('ABSPATH')) {
+    exit();
+}
+
 if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
 
     /**
      * Singleton abstract class.
-     *
-     * @since 1.0.0
      */
     abstract class Singleton
     {
         /**
          * Handle singleton instances map.
-         *
-         * @since 1.0.0
          */
         private static $_instances = [];
 
         /**
          * Class contructor.
-         *
-         * @since 1.0.0
          */
         protected function __construct()
         {
@@ -31,8 +29,6 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
 
         /**
          * Prevent class clonning.
-         *
-         * @since 1.0.0
          */
         protected function __clone()
         {
@@ -40,8 +36,6 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
 
         /**
          * Prevent class serialization.
-         *
-         * @since 1.0.0
          */
         public function __wakeup()
         {
@@ -50,8 +44,6 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
 
         /**
          * Get class instance.
-         *
-         * @since 1.0.0
          *
          * @return object $instance Class instance.
          */
