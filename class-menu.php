@@ -8,6 +8,9 @@ if (!defined('ABSPATH')) {
 
 if (!class_exists('\WPCT_ABSTRACT\Menu')) :
 
+    require_once 'class-singleton.php';
+    require_once 'class-settings.php';
+
     /**
      * Plugin menu abstract class.
      */

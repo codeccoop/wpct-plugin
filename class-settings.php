@@ -8,6 +8,9 @@ if (!defined('ABSPATH')) {
 
 if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
+    require_once 'class-singleton.php';
+    require_once 'class-rest-settings-controller.php';
+
     /**
      * Undefined value.
      */
@@ -25,21 +28,28 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
          *
          * @var string $group_name Settings group name.
          */
-        protected $group_name;
+        private $group_name;
 
         /**
          * Handle settings schemas.
          *
          * @var array $schemas Settings schemas.
          */
-        public static $schemas = [];
+        protected static $schemas = [];
 
         /**
          * Handle settings default values.
          *
          * @var array $defaults Settings default values.
          */
-        public static $defaults = [];
+        protected static $defaults = [];
+
+        /**
+         * Handle plugin settings rest controller class name.
+         *
+         * @var string $rest_controller_class Settings REST Controller class name.
+         */
+        protected static $rest_controller_class = '\WPCT_ABSTRACT\REST_Settings_Controller';
 
         /**
          * Handle settings cached values.
@@ -125,6 +135,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         public function __construct($group_name)
         {
             $this->group_name = $group_name;
+            static::$rest_controller_class::setup($group_name);
 
             add_filter('pre_update_option', function ($value, $option, $from) {
                 return $this->sanitize_setting($option, $value);

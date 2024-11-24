@@ -11,6 +11,9 @@ if (!defined('ABSPATH')) {
 
 if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
 
+    require_once 'class-singleton.php';
+    require_once 'class-menu.php';
+
     /**
      * Plugin abstract class.
      */
@@ -21,21 +24,21 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
          *
          * @var string $menu_class Menu class name.
          */
-        protected static $menu_class;
+        protected static $menu_class = '\WPCT_ABSTRACT\Menu';
 
         /**
          * Handle plugin textdomain.
          *
          * @var string $textdomain Plugin text domain.
          */
-        public static $textdomain;
+        protected static $textdomain;
 
         /**
          * Handle plugin name.
          *
          * @var string $name Plugin name.
          */
-        public static $name;
+        protected static $name;
 
         /**
          * Handle plugin menu instance.
@@ -219,9 +222,9 @@ if (!function_exists('\WPCT_ABSTRACT\is_plugin_active')) :
         return in_array($plugin_name, array_keys($actives));
     }
 
-    // Hooks is_plugin_active as filter.
-    add_filter('wpct_is_plugin_active', function ($null, $plugin_name) {
-        return \WPCT_ABSTRACT\is_plugin_active($plugin_name);
-    }, 10, 2);
+// Hooks is_plugin_active as filter.
+add_filter('wpct_is_plugin_active', function ($null, $plugin_name) {
+    return \WPCT_ABSTRACT\is_plugin_active($plugin_name);
+}, 10, 2);
 
 endif;
