@@ -108,7 +108,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
 
             register_rest_route(
                 "{$namespace}/v{$version}",
-                '/posts/settings/',
+                "/{$this->group_name}/settings/",
                 [
                     [
                         'methods' => WP_REST_Server::READABLE,
