@@ -137,7 +137,10 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             $this->group_name = $group_name;
             static::$rest_controller_class::setup($group_name);
 
-            add_filter('pre_update_option', function ($value, $option, $from) {
+            add_filter('pre_update_option', function ($value, $option, $from) use ($group_name) {
+                if (!strstr($option, $group_name)) {
+                    return $value;
+                }
                 return $this->sanitize_setting($option, $value);
             }, 10, 3);
         }
