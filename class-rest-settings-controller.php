@@ -159,6 +159,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
         private function set_settings()
         {
             $data = (array) json_decode(file_get_contents('php://input'), true);
+            $response = [];
             foreach (static::$settings as $setting) {
                 if (!isset($data[$setting])) {
                     continue;
@@ -169,10 +170,12 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
                 foreach (array_keys($from) as $key) {
                     $to[$key] = isset($to[$key]) ? $to[$key] : $from[$key];
                 }
-                update_option($this->group_name . '_' . $setting, $to);
+                $option = $this->group_name . '_' . $setting;
+                update_option($option, $to);
+                $response[$setting] = get_option($option);
             }
 
-            return get_option($this->group_name . '_' . $setting);
+            return $response;
         }
 
         /**
