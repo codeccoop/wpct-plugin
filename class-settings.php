@@ -430,7 +430,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
          * @param array $value Setting data.
          * @return array $value Sanitized setting data.
          */
-        private function sanitize_setting($option, $value)
+        protected function sanitize_setting($option, $value)
         {
             $settings = $this->get_settings();
             if (!in_array($option, $settings)) {
