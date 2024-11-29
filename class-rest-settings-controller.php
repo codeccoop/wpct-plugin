@@ -171,8 +171,12 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
                     $to[$key] = isset($to[$key]) ? $to[$key] : $from[$key];
                 }
                 $option = $this->group_name . '_' . $setting;
-                update_option($option, $to);
-                $response[$setting] = get_option($option);
+                $success = update_option($option, $to);
+                if ($success) {
+                    $response[$setting] = get_option($option);
+                } else {
+                    $response[$setting] = $from;
+                }
             }
 
             return $response;
