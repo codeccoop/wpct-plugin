@@ -2,6 +2,7 @@
 
 namespace WPCT_ABSTRACT;
 
+use Error;
 use WP_Error;
 use WP_REST_Server;
 
@@ -158,28 +159,31 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
          */
         private function set_settings()
         {
-            $data = (array) json_decode(file_get_contents('php://input'), true);
-            $response = [];
-            foreach (static::$settings as $setting) {
-                if (!isset($data[$setting])) {
-                    continue;
-                }
+            try {
+                $data = (array) json_decode(file_get_contents('php://input'), true);
+                $response = [];
+                foreach (static::$settings as $setting) {
+                    if (!isset($data[$setting])) {
+                        continue;
+                    }
 
-                $from = Settings::get_setting($this->group_name, $setting);
-                $to = $data[$setting];
-                foreach (array_keys($from) as $key) {
-                    $to[$key] = isset($to[$key]) ? $to[$key] : $from[$key];
+                    $from = Settings::get_setting($this->group_name, $setting);
+                    $to = $data[$setting];
+                    foreach (array_keys($from) as $key) {
+                        $to[$key] = isset($to[$key]) ? $to[$key] : $from[$key];
+                    }
+                    $option = $this->group_name . '_' . $setting;
+                    $success = update_option($option, $to);
+                    if ($success) {
+                        $response[$setting] = get_option($option);
+                    } else {
+                        $response[$setting] = $from;
+                    }
                 }
-                $option = $this->group_name . '_' . $setting;
-                $success = update_option($option, $to);
-                if ($success) {
-                    $response[$setting] = get_option($option);
-                } else {
-                    $response[$setting] = $from;
-                }
+                return ['success' => true];
+            } catch (Error $e) {
+                return self::error($e->getCode(), $e->getMessage(), $e->getData());
             }
-
-            return $response;
         }
 
         /**
