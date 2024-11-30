@@ -161,7 +161,6 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
         {
             try {
                 $data = (array) json_decode(file_get_contents('php://input'), true);
-                $response = [];
                 foreach (static::$settings as $setting) {
                     if (!isset($data[$setting])) {
                         continue;
@@ -173,12 +172,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
                         $to[$key] = isset($to[$key]) ? $to[$key] : $from[$key];
                     }
                     $option = $this->group_name . '_' . $setting;
-                    $success = update_option($option, $to);
-                    if ($success) {
-                        $response[$setting] = get_option($option);
-                    } else {
-                        $response[$setting] = $from;
-                    }
+                    update_option($option, $to);
                 }
                 return ['success' => true];
             } catch (Error $e) {

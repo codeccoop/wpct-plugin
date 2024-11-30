@@ -124,7 +124,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                 return $schema;
             }
 
-            return isset($schema[$field]) ? $schema[$field] : null;
+            return isset($schema['properties'][$field]) ? $schema[$field] : null;
         }
 
         /**
@@ -181,6 +181,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
          */
         public function register_setting($setting, $schema = null, $default = [])
         {
+            if (is_array($schema)) {
+                $schema = ['type' => 'object', 'properties' => $schema, 'additionalProperties' => false];
+            }
             $setting_name = $this->setting_name($setting);
             self::$schemas[$setting_name] = $schema;
             self::$defaults[$setting_name] = $default;
@@ -196,26 +199,21 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
                     'type' => 'object',
                     'show_in_rest' => $schema ? [
                         'name' => $setting_name,
-                        'schema' => [
-                            'type' => 'object',
-                            'properties' => $schema,
-                            'additionalProperties' => false,
-                        ],
+                        'schema' => $schema,
                     ] : false,
-                    'type' => 'object',
                     'default' => $default,
                 ],
             );
 
             // Cache data on option creation
-            add_action('add_option', function ($option, $value) use ($setting_name) {
+            add_action('add_option', static function ($option, $value) use ($setting_name) {
                 if ($option === $setting_name && !empty($to)) {
                     static::$cache[$setting_name] = $value;
                 }
             }, 5, 2);
 
             // Cache data on option update
-            add_action('update_option', function ($option, $from, $to) use ($setting_name) {
+            add_action('update_option', static function ($option, $from, $to) use ($setting_name) {
                 if ($option === $setting_name && !empty($to)) {
                     static::$cache[$setting_name] = $to;
                 }
@@ -325,7 +323,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
         protected function input_render($setting, $field, $value)
         {
             $setting_name = $this->setting_name($setting);
-            $schema = self::get_schema($this->group_name, $setting);
+            $schema = self::get_schema($this->group_name, $setting)['properties'];
             $default_value = self::get_default($this->group_name, $setting);
             $keys = explode('][', $field);
             $is_list = is_list($default_value);
