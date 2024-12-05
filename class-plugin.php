@@ -97,6 +97,30 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
                 return $this->load_mofile($mofile, $domain);
             }, 10, 2);
 
+            add_filter(
+                'plugin_action_links',
+                static function ($links, $file) {
+                    if (static::$menu_class === '\WPCT_ABSTRACT\Menu') {
+                        return $links;
+                    }
+
+                    $reflector = new ReflectionClass(static::class);
+                    $__FILE__ = $reflector->getFileName();
+
+                    if ($file !== plugin_basename($__FILE__)) {
+                        return $links;
+                    }
+
+                    $url = admin_url('options-general.php?page=' . static::$textdomain);
+                    $label = __('Settings');
+                    $link = "<a href='{$url}'>{$label}</a>";
+                    array_unshift($links, $link);
+                    return $links;
+                },
+                10,
+                2
+            );
+
             register_activation_hook($this->index(), function () {
                 static::activate();
             });
@@ -134,8 +158,8 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         public function index()
         {
             $reflector = new ReflectionClass(static::class);
-            $fn = $reflector->getFileName();
-            return plugin_basename($fn);
+            $__FILE__ = $reflector->getFileName();
+            return plugin_basename($__FILE__);
         }
 
         /**
