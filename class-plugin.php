@@ -50,40 +50,48 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         /**
          * Plugin initializer.
          */
-        abstract public function init();
+        protected function init()
+        {
+        }
 
         /**
          * Plugin activation callback.
          */
-        abstract public static function activate();
+        public static function activate()
+        {
+        }
 
         /**
          * Plugin deactivation callback.
          */
-        abstract public static function deactivate();
-
-        public static function setup()
+        public static function deactivate()
         {
-            return self::get_instance();
+        }
+
+        public static function setup(...$args)
+        {
+            return self::get_instance(...$args);
         }
 
         /**
          * Plugin constructor. Bind plugin to wp init hook and load textdomain.
          */
-        public function __construct()
+        protected function construct(...$args)
         {
             if (empty(static::$name) || empty(static::$textdomain)) {
                 throw new Exception('Bad plugin initialization');
             }
 
             if (static::$menu_class && $this->is_active()) {
-                $this->menu = static::$menu_class::get_instance(static::$name, static::$textdomain);
+                if (static::$menu_class !== '\WPCT_ABSTRACT\Menu') {
+                    $this->menu = static::$menu_class::get_instance(static::$name, static::$textdomain);
+                }
             }
 
-            add_action('init', [$this, 'init'], 10);
             add_action('init', function () {
+                $this->init();
                 $this->load_textdomain();
-            }, 5);
+            });
 
             add_filter('load_textdomain_mofile', function ($mofile, $domain) {
                 return $this->load_mofile($mofile, $domain);

@@ -50,8 +50,9 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
          * @param string $name Plugin name.
          * @param string $slug Plugin textdomain.
          */
-        public function __construct($name, $slug)
+        protected function construct(...$args)
         {
+            [$name, $slug] = $args;
             $this->name = $name;
             $this->slug = $slug;
             $this->settings = static::$settings_class::get_instance($slug);

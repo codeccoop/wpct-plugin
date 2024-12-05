@@ -77,8 +77,9 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
          *
          * @param string $group_name Settings group name.
          */
-        public function __construct($group_name)
+        protected function construct(...$args)
         {
+            [$group_name] = $args;
             $this->group_name = $group_name;
             add_action('rest_api_init', function () {
                 $this->init();

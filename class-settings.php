@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
 if (!class_exists('\WPCT_ABSTRACT\Settings')) :
 
     require_once 'class-singleton.php';
-	require_once 'class-setting.php';
+    require_once 'class-setting.php';
     require_once 'class-rest-settings-controller.php';
 
     /**
@@ -55,7 +55,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
          *
          * @param string $group Setting's group name.
          * @param string $name Setting's name.
-		 *
+         *
          * @return Setting $value Setting instace.
          */
         public static function get_setting($group, $name)
@@ -69,8 +69,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
          *
          * @param string $group Settings group name.
          */
-        public function __construct($group)
+        protected function construct(...$args)
         {
+            [$group] = $args;
             $this->group = $group;
             static::$rest_controller_class::setup($group);
         }
@@ -190,7 +191,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
          * @param Setting $setting Setting instance.
          * @param string $field Field name.
          * @param string|Undefined $value Field value.
-		 *
+         *
          * @return string $html Input HTML.
          */
         protected function field_render()
@@ -213,7 +214,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
          * @param Setting $setting Setting instance.
          * @param string $field Field name.
          * @param string|Undefined $value Field value.
-		 *
+         *
          * @return string $html Input HTML.
          */
         private function _field_render($setting, $field, $value)

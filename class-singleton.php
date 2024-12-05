@@ -21,10 +21,11 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
         private static $_instances = [];
 
         /**
-         * Class contructor.
+         * Controlled class contructor.
          */
-        protected function __construct()
+        public function __construct(&$singleton)
         {
+            $singleton = true;
         }
 
         /**
@@ -43,6 +44,11 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
         }
 
         /**
+         * Abstract singleton class constructor.
+         */
+        abstract protected function construct(...$args);
+
+        /**
          * Get class instance.
          *
          * @return object $instance Class instance.
@@ -52,7 +58,12 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
             $args = func_get_args();
             $cls = static::class;
             if (!isset(self::$_instances[$cls])) {
-                self::$_instances[$cls] = new static(...$args);
+                // Pass $singleton reference to prevent singleton classes constructor overwrites
+                self::$_instances[$cls] = new static($singleton);
+                if (!$singleton) {
+                    throw new Exception('Cannot create uncontrolled instances from a singleton.');
+                }
+                (self::$_instances[$cls])->construct(...$args);
             }
 
             return self::$_instances[$cls];
