@@ -1,7 +1,7 @@
 <?php
 // Script to be buffered from settings class
-$default_value = $default[$field][0];
-$is_array = is_array($default_value);
+$value = $data[$field][0];
+$is_array = is_array($value);
 $table_id = $setting_name . '__' . str_replace('][', '_', $field);
 ?>
 
@@ -10,15 +10,15 @@ $table_id = $setting_name . '__' . str_replace('][', '_', $field);
         function renderRowContent(index) {
             <?php if ($is_array) : ?>
                 return `<table id="<?= $table_id ?>_${index}">
-          <?php foreach (array_keys($default_value) as $key) : ?>
+          <?php foreach (array_keys($value) as $key) : ?>
             <tr>
                 <th><?= $key ?></th>
-                <td><?= $this->input_render($setting, $field . '][${index}][' . $key, $default_value[$key]); ?></td>
+                <td><?= $this->input_render($setting, $field . '][${index}][' . $key, $value[$key]); ?></td>
             </tr>
           <?php endforeach; ?>
         </table>`;
             <?php else : ?>
-                return `<?= $this->input_render($setting, $field . '][${index}', $default_value); ?>`;
+                return `<?= $this->input_render($setting, $field . '][${index}', $value); ?>`;
             <?php endif; ?>
         }
 

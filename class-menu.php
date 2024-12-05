@@ -89,7 +89,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
          */
         protected function render_page($echo = true)
         {
-            $page_settings = $this->settings->get_settings();
+            $page_settings = $this->settings->settings();
             $tabs = array_reduce($page_settings, function ($carry, $setting) {
                 $carry[$setting] = __($setting . '--title', $this->slug);
                 return $carry;
@@ -127,7 +127,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
          *
          * @return string $name Menu name.
          */
-        public function get_name()
+        public function name()
         {
             return $this->name;
         }
@@ -137,7 +137,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
          *
          * @return string $slug Menu slug.
          */
-        public function get_slug()
+        public function slug()
         {
             return $this->slug;
         }
@@ -147,7 +147,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
          *
          * @return object $settings Plugin settings instance.
          */
-        public function get_settings()
+        public function settings()
         {
             return $this->settings;
         }

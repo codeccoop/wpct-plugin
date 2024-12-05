@@ -94,7 +94,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
             $namespace = static::$namespace;
             $version = static::$version;
             $schema = array_reduce(static::$settings, function ($schema, $setting_name) {
-                $setting_schema = Settings::get_schema($this->group_name, $setting_name);
+                $setting_schema = (Settings::get_setting($this->group_name, $setting_name))->schema();
                 $schema['properties'][$setting_name] = [
                     'type' => 'object',
                     'properties' => $setting_schema,
@@ -144,10 +144,10 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
         {
             $settings = [];
             foreach (static::$settings as $setting) {
-                $settings[$setting] = Settings::get_setting(
+                $settings[$setting] = (Settings::get_setting(
                     $this->group_name,
                     $setting
-                );
+                ))->data();
             }
             return $settings;
         }
@@ -166,7 +166,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
                         continue;
                     }
 
-                    $from = Settings::get_setting($this->group_name, $setting);
+                    $from = (Settings::get_setting($this->group_name, $setting))->data();
                     $to = $data[$setting];
                     foreach (array_keys($from) as $key) {
                         $to[$key] = isset($to[$key]) ? $to[$key] : $from[$key];

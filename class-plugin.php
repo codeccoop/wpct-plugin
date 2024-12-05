@@ -62,6 +62,11 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
          */
         abstract public static function deactivate();
 
+        public static function setup()
+        {
+            return self::get_instance();
+        }
+
         /**
          * Plugin constructor. Bind plugin to wp init hook and load textdomain.
          */
@@ -83,6 +88,14 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
             add_filter('load_textdomain_mofile', function ($mofile, $domain) {
                 return $this->load_mofile($mofile, $domain);
             }, 10, 2);
+
+            register_activation_hook($this->index(), function () {
+                static::activate();
+            });
+
+            register_deactivation_hook($this->index(), function () {
+                static::deactivate();
+            });
         }
 
         /**
@@ -90,7 +103,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
          *
          * @return object $menu Plugin menu instance.
          */
-        public function get_menu()
+        public function menu()
         {
             return $this->menu;
         }
@@ -100,7 +113,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
          *
          * @return string $name Plugin name.
          */
-        public function get_name()
+        public function name()
         {
             return static::$name;
         }
@@ -110,9 +123,9 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
          *
          * @return string $index Plugin index file path.
          */
-        public function get_index()
+        public function index()
         {
-            $reflector = new ReflectionClass(get_class($this));
+            $reflector = new ReflectionClass(static::class);
             $fn = $reflector->getFileName();
             return plugin_basename($fn);
         }
@@ -122,7 +135,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
          *
          * @return string $textdomain Plugin textdomain.
          */
-        public function get_textdomain()
+        public function textdomain()
         {
             return static::$textdomain;
         }
@@ -132,11 +145,11 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
          *
          * @return array $data Plugin data.
          */
-        public function get_data()
+        public function data()
         {
             include_once(ABSPATH . 'wp-admin/includes/plugin.php');
             $plugins = get_plugins();
-            $plugin_name = $this->get_index();
+            $plugin_name = $this->index();
             foreach ($plugins as $plugin => $data) {
                 if ($plugin === $plugin_name) {
                     return $data;
@@ -151,7 +164,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
          */
         public function is_active()
         {
-            return apply_filters('wpct_is_plugin_active', false, $this->get_index());
+            return apply_filters('wpct_is_plugin_active', false, $this->index());
         }
 
         /**
@@ -159,13 +172,13 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
          */
         private function load_textdomain()
         {
-            $data = $this->get_data();
+            $data = $this->data();
             $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
 
             load_plugin_textdomain(
                 static::$textdomain,
                 false,
-                dirname($this->get_index()) . $domain_path,
+                dirname($this->index()) . $domain_path,
             );
         }
 
@@ -179,11 +192,11 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         private function load_mofile($mofile, $domain)
         {
             if ($domain === static::$textdomain && strpos($mofile, WP_LANG_DIR . '/plugins/') === false) {
-                $data = $this->get_data();
+                $data = $this->data();
                 $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
 
                 $locale = apply_filters('plugin_locale', determine_locale(), $domain);
-                $mofile = WP_PLUGIN_DIR . '/' . dirname($this->get_index()) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
+                $mofile = WP_PLUGIN_DIR . '/' . dirname($this->index()) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
             }
 
             return $mofile;
