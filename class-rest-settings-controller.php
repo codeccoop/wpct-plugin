@@ -55,7 +55,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
          */
         public static function setup($group_name)
         {
-            return new (static::class)($group_name);
+            return static::class::get_instance($group_name);
         }
 
         /**
