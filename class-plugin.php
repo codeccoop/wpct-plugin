@@ -73,7 +73,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
             return self::get_instance(...$args);
         }
 
-        public static function is_plugin_active()
+        public static function is_plugin_active($plugin_name)
         {
             include_once(ABSPATH . 'wp-admin/includes/plugin.php');
             $plugins = get_plugins();
