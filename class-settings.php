@@ -55,6 +55,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         public static function get_setting($group, $name)
         {
             $setting_name = $group . '_' . $name;
+            if (!isset(self::$cache[$setting_name])) {
+                self::$cache[$setting_name] = new Setting($group, $name, [], []);
+            }
             return self::$cache[$setting_name];
         }
 

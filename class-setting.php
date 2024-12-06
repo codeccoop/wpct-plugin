@@ -242,6 +242,8 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
          */
         protected function sanitize($value)
         {
+            $value = apply_filters('wpct_sanitize_setting', $value, $this);
+
             if (!rest_validate_value_from_schema($value, $this->schema)) {
                 return new WP_Error('rest_invalid_schema', 'The setting is not schema conformant', ['value' => $value, 'schema' => $schema]);
             }

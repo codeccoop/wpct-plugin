@@ -107,10 +107,8 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                 throw new Exception('Bad plugin initialization');
             }
 
-            if (static::$menu_class && $this->is_active()) {
-                if (static::$menu_class !== '\WPCT_ABSTRACT\Menu') {
-                    $this->menu = static::$menu_class::get_instance(static::$name, static::$textdomain);
-                }
+            if (static::$menu_class !== '\WPCT_ABSTRACT\Menu' && $this->is_active()) {
+                $this->menu = static::$menu_class::get_instance(static::$name, static::$textdomain);
             }
 
             add_action('init', function () {

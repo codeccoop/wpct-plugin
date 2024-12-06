@@ -36,9 +36,9 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         /**
         * Handle plugin settings group name.
         *
-        * @var string $group_name Settings group name.
+        * @var string $group Settings group name.
         */
-        private $group_name;
+        private $group;
 
         /**
          * Handle plugin settings names.
@@ -50,12 +50,12 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         /**
          * Setup a new rest settings controller.
          *
-         * @param string $group_name Plugin settings group name.
+         * @param string $group Plugin settings group name.
          * @return object $controller Instance of REST_Controller.
          */
-        public static function setup($group_name)
+        public static function setup($group)
         {
-            return static::class::get_instance($group_name);
+            return static::class::get_instance($group);
         }
 
         /**
@@ -75,12 +75,12 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         /**
          * Store the group name and binds class initializer to the rest_api_init hook
          *
-         * @param string $group_name Settings group name.
+         * @param string $group Settings group name.
          */
         protected function construct(...$args)
         {
-            [$group_name] = $args;
-            $this->group_name = $group_name;
+            [$group] = $args;
+            $this->group = $group;
             add_action('rest_api_init', function () {
                 $this->init();
             });
@@ -95,7 +95,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             $namespace = static::$namespace;
             $version = static::$version;
             $schema = array_reduce(static::$settings, function ($schema, $setting_name) {
-                $setting_schema = (Settings::get_setting($this->group_name, $setting_name))->schema();
+                $setting_schema = (Settings::get_setting($this->group, $setting_name))->schema();
                 $schema['properties'][$setting_name] = [
                     'type' => 'object',
                     'properties' => $setting_schema,
@@ -103,14 +103,14 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                 return $schema;
             }, [
                 '$schema' => 'http://json-schema.org/draft-04/schema#',
-                'title' => $this->group_name,
+                'title' => $this->group,
                 'type' => 'object',
                 'properties' => [],
             ]);
 
             register_rest_route(
                 "{$namespace}/v{$version}",
-                "/{$this->group_name}/settings/",
+                "/{$this->group}/settings/",
                 [
                     [
                         'methods' => WP_REST_Server::READABLE,
@@ -146,7 +146,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             $settings = [];
             foreach (static::$settings as $setting) {
                 $settings[$setting] = (Settings::get_setting(
-                    $this->group_name,
+                    $this->group,
                     $setting
                 ))->data();
             }
@@ -167,17 +167,17 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                         continue;
                     }
 
-                    $from = (Settings::get_setting($this->group_name, $setting))->data();
+                    $from = (Settings::get_setting($this->group, $setting))->data();
                     $to = $data[$setting];
                     foreach (array_keys($from) as $key) {
                         $to[$key] = isset($to[$key]) ? $to[$key] : $from[$key];
                     }
-                    $option = $this->group_name . '_' . $setting;
+                    $option = $this->group . '_' . $setting;
                     update_option($option, $to);
                 }
                 return ['success' => true];
             } catch (Error $e) {
-                return self::error($e->getCode(), $e->getMessage(), $e->getData());
+                return self::error($e->getCode(), $e->getMessage(), ['data' => $data], $this->group);
             }
         }
 
@@ -194,7 +194,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                     'rest_unauthorized',
                     'You can\'t manage wp options',
                     403,
-                    $this->group_name,
+                    $this->group,
                 );
         }
     }
