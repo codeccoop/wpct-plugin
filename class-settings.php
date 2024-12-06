@@ -6,18 +6,12 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\Settings')) :
+if (!class_exists('\WPCT_ABSTRACT\Settings')) {
 
     require_once 'class-singleton.php';
     require_once 'class-setting.php';
     require_once 'class-rest-settings-controller.php';
-
-    /**
-     * Undefined value.
-     */
-    class Undefined
-    {
-    };
+    require_once 'class-undefined.php';
 
     /**
      * Plugin settings abstract class.
@@ -320,8 +314,8 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             <button class="button button-primary" data-action="add">Add</button>
             <button class="button button-secondary" data-action="remove">Remove</button>
         </div>
-        <?php include 'fieldset-control-js.php' ?>
-<?php
+		<?php
+            include 'fieldset-control-js.php';
             return ob_get_clean();
         }
 
@@ -338,10 +332,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) :
             return "<style>#{$setting_name}__{$field} td td,#{$setting_name}__{$field} td th{padding:0}#{$setting_name}__{$field} table table{margin-bottom:1rem}</style>";
         }
     }
+}
 
-endif;
-
-if (!function_exists('\WPCT_ABSTRACT\is_list')) :
+if (!function_exists('\WPCT_ABSTRACT\is_list')) {
 
     /**
      * Check if array is positional.
@@ -359,5 +352,4 @@ if (!function_exists('\WPCT_ABSTRACT\is_list')) :
         }
         return array_keys($arr) === range(0, count($arr) - 1);
     }
-
-endif;
+}

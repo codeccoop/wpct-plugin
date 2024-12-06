@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
+if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
 
     require_once 'class-singleton.php';
     require_once 'class-menu.php';
@@ -71,6 +71,31 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         public static function setup(...$args)
         {
             return self::get_instance(...$args);
+        }
+
+        public static function is_plugin_active()
+        {
+            include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+            $plugins = get_plugins();
+
+            if (is_multisite()) {
+                $actives = apply_filters('active_plugins', array_map(function ($plugin_path) {
+                    return plugin_basename($plugin_path);
+                }, wp_get_active_network_plugins()));
+            } else {
+                $actives = apply_filters('active_plugins', get_option('active_plugins'));
+            }
+
+            $actives = array_reduce(array_keys($plugins), function ($carry, $plugin_path) use ($plugins, $actives) {
+                if (in_array($plugin_path, $actives)) {
+                    $carry[$plugin_path] = $plugins[$plugin_path];
+                }
+
+                return $carry;
+            }, []);
+
+            $plugin_name = plugin_basename($plugin_name);
+            return in_array($plugin_name, array_keys($actives));
         }
 
         /**
@@ -235,41 +260,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) :
         }
     }
 
-endif;
-
-if (!function_exists('\WPCT_ABSTRACT\is_plugin_active')) :
-
-    /**
-     * Check if plugin is active
-     */
-    function is_plugin_active($plugin_name)
-    {
-        include_once(ABSPATH . 'wp-admin/includes/plugin.php');
-        $plugins = get_plugins();
-
-        if (is_multisite()) {
-            $actives = apply_filters('active_plugins', array_map(function ($plugin_path) {
-                return plugin_basename($plugin_path);
-            }, wp_get_active_network_plugins()));
-        } else {
-            $actives = apply_filters('active_plugins', get_option('active_plugins'));
-        }
-
-        $actives = array_reduce(array_keys($plugins), function ($carry, $plugin_path) use ($plugins, $actives) {
-            if (in_array($plugin_path, $actives)) {
-                $carry[$plugin_path] = $plugins[$plugin_path];
-            }
-
-            return $carry;
-        }, []);
-
-        $plugin_name = plugin_basename($plugin_name);
-        return in_array($plugin_name, array_keys($actives));
-    }
-
-// Hooks is_plugin_active as filter.
-add_filter('wpct_is_plugin_active', function ($null, $plugin_name) {
-    return \WPCT_ABSTRACT\is_plugin_active($plugin_name);
-}, 10, 2);
-
-endif;
+    add_filter('wpct_is_plugin_active', function ($false, $plugin_name) {
+        return Plugin::is_plugin_active($plugin_name);
+    }, 10, 2);
+}

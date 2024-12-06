@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\Menu')) :
+if (!class_exists('\WPCT_ABSTRACT\Menu')) {
 
     require_once 'class-singleton.php';
     require_once 'class-settings.php';
@@ -153,5 +153,4 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) :
             return $this->settings;
         }
     }
-
-endif;
+}

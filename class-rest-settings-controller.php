@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
+if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
 
     require_once 'class-singleton.php';
 
@@ -198,5 +198,4 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) :
                 );
         }
     }
-
-endif;
+}
