@@ -92,6 +92,28 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
         }
 
         /**
+         * Proxies data attributes to class attributes.
+         *
+         * @param string $field Field name.
+         *
+         * @return mixed Data field value or null.
+         */
+        public function __get($field)
+        {
+            $data = $this->data();
+            return isset($data[$field]) ? $data[$field] : null;
+        }
+
+        public function __set($field, $value)
+        {
+            $data = $this->data();
+            if (isset($data[$field])) {
+                $data[$field] = $value;
+                $this->update($data);
+            }
+        }
+
+        /**
          * Gets the setting group.
          *
          * @return string Setting group.
@@ -194,7 +216,7 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
         private function proxy($target, $field = null)
         {
             if (!isset($this->$target)) {
-                return null;
+                return;
             }
 
             $name = $target;
