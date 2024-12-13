@@ -52,18 +52,19 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          */
         protected function construct(...$args)
         {
-            [$name, $slug] = $args;
+            [$name, $slug, $settings] = $args;
             $this->name = $name;
             $this->slug = $slug;
-            $this->settings = static::$settings_class::get_instance($slug);
+            $this->settings = $settings;
 
             add_action('admin_menu', function () {
                 $this->add_menu();
+                do_action('wpct_register_menu', $this->name, $this);
             });
 
-            add_action('init', function () {
-                $this->settings->register();
-            });
+            // add_action('init', function () {
+            //     $this->settings->register();
+            // });
         }
 
         /**

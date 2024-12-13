@@ -71,6 +71,11 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
             [$group] = $args;
             $this->group = $group;
             static::$rest_controller_class::setup($group);
+
+            add_action('init', function () {
+                $this->register();
+                do_action('wpct_register_settings', $this->group, $this);
+            });
         }
 
         /**

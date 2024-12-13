@@ -38,7 +38,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         *
         * @var string $group Settings group name.
         */
-        private $group;
+        protected $group;
 
         /**
          * Handle plugin settings names.
@@ -94,7 +94,8 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             // register settings endpoint
             $namespace = static::$namespace;
             $version = static::$version;
-            $schema = array_reduce(static::$settings, function ($schema, $setting_name) {
+            $settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
+            $schema = array_reduce($settings, function ($schema, $setting_name) {
                 $setting_schema = (Settings::get_setting($this->group, $setting_name))->schema();
                 $schema['properties'][$setting_name] = [
                     'type' => 'object',
@@ -143,14 +144,16 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          */
         private function get_settings()
         {
-            $settings = [];
-            foreach (static::$settings as $setting) {
-                $settings[$setting] = (Settings::get_setting(
+            $data = [];
+			$settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
+            foreach ($settings as $setting) {
+                $data[$setting] = (Settings::get_setting(
                     $this->group,
                     $setting
                 ))->data();
             }
-            return $settings;
+
+            return $data;
         }
 
         /**
@@ -162,7 +165,9 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         {
             try {
                 $data = (array) json_decode(file_get_contents('php://input'), true);
-                foreach (static::$settings as $setting) {
+
+				$settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
+                foreach ($settings as $setting) {
                     if (!isset($data[$setting])) {
                         continue;
                     }

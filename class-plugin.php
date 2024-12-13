@@ -26,6 +26,8 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         protected static $menu_class = '\WPCT_ABSTRACT\Menu';
 
+        protected static $settings_class = '\WPCT_ABSTRACT\Settings';
+
         /**
          * Handle plugin textdomain.
          *
@@ -39,6 +41,8 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          * @var string $name Plugin name.
          */
         protected static $name;
+
+        private $settings;
 
         /**
          * Handle plugin menu instance.
@@ -107,8 +111,12 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                 throw new Exception('Bad plugin initialization');
             }
 
-            if (static::$menu_class !== '\WPCT_ABSTRACT\Menu' && $this->is_active()) {
-                $this->menu = static::$menu_class::get_instance(static::$name, static::$textdomain);
+            if (static::$settings_class !== '\WPCT_ABSTRACT\Settings') {
+                $this->settings = static::$settings_class::get_instance(static::$textdomain);
+
+                if (static::$menu_class !== '\WPCT_ABSTRACT\Menu' && $this->is_active()) {
+                    $this->menu = static::$menu_class::get_instance(static::$name, static::$textdomain, $this->settings);
+                }
             }
 
             add_action('init', function () {
