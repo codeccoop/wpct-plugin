@@ -42,6 +42,11 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         protected static $name;
 
+        /**
+         * Handle the instance of the settings store.
+         *
+         * @var Settings Settings instance.
+         */ 
         private $settings;
 
         /**
@@ -72,11 +77,21 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
         {
         }
 
+        /**
+         * Public plugin's initializer.
+         */ 
         public static function setup(...$args)
         {
             return self::get_instance(...$args);
         }
 
+        /**
+         * Checks if some plugin is active, also in the network.
+         *
+         * @param string $plugin_name Index file of the plugin.
+         *
+         * @return boolean Activation state of the plugin.
+         */ 
         public static function is_plugin_active($plugin_name)
         {
             include_once(ABSPATH . 'wp-admin/includes/plugin.php');
