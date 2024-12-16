@@ -61,7 +61,7 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
         {
             $this->group = $group;
             $this->name = $name;
-            $this->default = $data;
+            $this->default = apply_filters('wpct_setting_default', $data, $this->full_name());
             $this->schema = $schema;
 
             add_action('add_option', function ($option, $value) {
