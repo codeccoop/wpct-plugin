@@ -61,10 +61,6 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
                 $this->add_menu();
                 do_action('wpct_register_menu', $this->name, $this);
             });
-
-            // add_action('init', function () {
-            //     $this->settings->register();
-            // });
         }
 
         /**
