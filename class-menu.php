@@ -9,7 +9,6 @@ if (!defined('ABSPATH')) {
 if (!class_exists('\WPCT_ABSTRACT\Menu')) {
 
     require_once 'class-singleton.php';
-    require_once 'class-settings.php';
 
     /**
      * Plugin menu abstract class.
@@ -17,32 +16,25 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
     abstract class Menu extends Singleton
     {
         /**
-         * Handle plugin settings class name.
-         *
-         * @var string $settings_class Settings class name.
-         */
-        protected static $settings_class = '\WPCT_ABSTRACT\Settings';
-
-        /**
          * Handle menu name.
          *
          * @var string $name Menu name.
          */
-        protected $name;
+        private $name;
 
         /**
          * Handle menu slug.
          *
          * @var string $settings_class Settings class name.
          */
-        protected $slug;
+        private $slug;
 
         /**
          * Handle plugin settings instance.
          *
          * @var object $settings Settings instance.
          */
-        protected $settings;
+        private $settings;
 
         /**
          * Class constructor. Set attributes and hooks to wp admin hooks.

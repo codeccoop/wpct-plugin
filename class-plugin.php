@@ -13,6 +13,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
 
     require_once 'class-singleton.php';
     require_once 'class-menu.php';
+    require_once 'class-settings.php';
 
     /**
      * Plugin abstract class.
@@ -24,9 +25,14 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          *
          * @var string $menu_class Menu class name.
          */
-        protected static $menu_class = '\WPCT_ABSTRACT\Menu';
+        protected static $menu_class;
 
-        protected static $settings_class = '\WPCT_ABSTRACT\Settings';
+        /**
+         * Handle plugin settings store class name.
+         *
+         * @var string $settings_name Settings store class name.
+         */
+        protected static $settings_class;
 
         /**
          * Handle plugin textdomain.
@@ -46,7 +52,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          * Handle the instance of the settings store.
          *
          * @var Settings Settings instance.
-         */ 
+         */
         private $settings;
 
         /**
@@ -79,7 +85,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
 
         /**
          * Public plugin's initializer.
-         */ 
+         */
         public static function setup(...$args)
         {
             return self::get_instance(...$args);
@@ -91,30 +97,11 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          * @param string $plugin_name Index file of the plugin.
          *
          * @return boolean Activation state of the plugin.
-         */ 
+         */
         public static function is_plugin_active($plugin_name)
         {
             include_once(ABSPATH . 'wp-admin/includes/plugin.php');
-            $plugins = get_plugins();
-
-            if (is_multisite()) {
-                $actives = apply_filters('active_plugins', array_map(function ($plugin_path) {
-                    return plugin_basename($plugin_path);
-                }, wp_get_active_network_plugins()));
-            } else {
-                $actives = apply_filters('active_plugins', get_option('active_plugins'));
-            }
-
-            $actives = array_reduce(array_keys($plugins), function ($carry, $plugin_path) use ($plugins, $actives) {
-                if (in_array($plugin_path, $actives)) {
-                    $carry[$plugin_path] = $plugins[$plugin_path];
-                }
-
-                return $carry;
-            }, []);
-
-            $plugin_name = plugin_basename($plugin_name);
-            return in_array($plugin_name, array_keys($actives));
+            return is_plugin_active($plugin_name);
         }
 
         /**
@@ -126,27 +113,27 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                 throw new Exception('Bad plugin initialization');
             }
 
-            if (static::$settings_class !== '\WPCT_ABSTRACT\Settings') {
+            if (isset(static::$settings_class)) {
                 $this->settings = static::$settings_class::get_instance(static::$textdomain);
 
-                if (static::$menu_class !== '\WPCT_ABSTRACT\Menu' && $this->is_active()) {
+                if (isset(static::$menu_class) && static::is_active()) {
                     $this->menu = static::$menu_class::get_instance(static::$name, static::$textdomain, $this->settings);
                 }
             }
 
             add_action('init', function () {
                 $this->init();
-                $this->load_textdomain();
+                static::load_textdomain();
             });
 
             add_filter('load_textdomain_mofile', function ($mofile, $domain) {
-                return $this->load_mofile($mofile, $domain);
+                return static::load_mofile($mofile, $domain);
             }, 10, 2);
 
             add_filter(
                 'plugin_action_links',
                 static function ($links, $file) {
-                    if (static::$menu_class === '\WPCT_ABSTRACT\Menu') {
+                    if (!isset(static::$menu_class)) {
                         return $links;
                     }
 
@@ -167,23 +154,13 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                 2
             );
 
-            register_activation_hook($this->index(), function () {
+            register_activation_hook(static::index(), function () {
                 static::activate();
             });
 
-            register_deactivation_hook($this->index(), function () {
+            register_deactivation_hook(static::index(), function () {
                 static::deactivate();
             });
-        }
-
-        /**
-         * Plugin menu getter.
-         *
-         * @return object $menu Plugin menu instance.
-         */
-        public function menu()
-        {
-            return $this->menu;
         }
 
         /**
@@ -191,7 +168,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          *
          * @return string $name Plugin name.
          */
-        public function name()
+        public static function name()
         {
             return static::$name;
         }
@@ -201,7 +178,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          *
          * @return string $index Plugin index file path.
          */
-        public function index()
+        public static function index()
         {
             $reflector = new ReflectionClass(static::class);
             $__FILE__ = $reflector->getFileName();
@@ -213,7 +190,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          *
          * @return string $textdomain Plugin textdomain.
          */
-        public function textdomain()
+        public static function textdomain()
         {
             return static::$textdomain;
         }
@@ -223,11 +200,11 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          *
          * @return array $data Plugin data.
          */
-        public function data()
+        public static function data()
         {
             include_once(ABSPATH . 'wp-admin/includes/plugin.php');
             $plugins = get_plugins();
-            $plugin_name = $this->index();
+            $plugin_name = static::index();
             foreach ($plugins as $plugin => $data) {
                 if ($plugin === $plugin_name) {
                     return $data;
@@ -240,23 +217,23 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          *
          * @return boolean $is_active Plugin active state.
          */
-        public function is_active()
+        public static function is_active()
         {
-            return apply_filters('wpct_is_plugin_active', false, $this->index());
+            return self::is_plugin_active(static::index());
         }
 
         /**
          * Load plugin textdomain.
          */
-        private function load_textdomain()
+        private static function load_textdomain()
         {
-            $data = $this->data();
+            $data = static::data();
             $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
 
             load_plugin_textdomain(
                 static::$textdomain,
                 false,
-                dirname($this->index()) . $domain_path,
+                dirname(static::index()) . $domain_path,
             );
         }
 
@@ -267,21 +244,17 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          * @param string $domain Plugin textdomain.
          * @return string $mofile Plugin mofile path.
          */
-        private function load_mofile($mofile, $domain)
+        private static function load_mofile($mofile, $domain)
         {
             if ($domain === static::$textdomain && strpos($mofile, WP_LANG_DIR . '/plugins/') === false) {
-                $data = $this->data();
+                $data = static::data();
                 $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
 
                 $locale = apply_filters('plugin_locale', determine_locale(), $domain);
-                $mofile = WP_PLUGIN_DIR . '/' . dirname($this->index()) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
+                $mofile = WP_PLUGIN_DIR . '/' . dirname(static::index()) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
             }
 
             return $mofile;
         }
     }
-
-    add_filter('wpct_is_plugin_active', function ($false, $plugin_name) {
-        return Plugin::is_plugin_active($plugin_name);
-    }, 10, 2);
 }
