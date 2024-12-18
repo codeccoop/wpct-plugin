@@ -173,10 +173,20 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
             return static::$name;
         }
 
+	/**
+         * Plugin slug getter.
+         *
+         * @return string $slug Plugin's textdomain alias.
+         */
+        public static function slug()
+        {
+            return static::$textdomain;
+        }
+
         /**
          * Plugin index getter.
          *
-         * @return string $index Plugin index file path.
+         * @return string $index Plugin's index file path.
          */
         public static function index()
         {
