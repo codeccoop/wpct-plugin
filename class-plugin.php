@@ -2,8 +2,8 @@
 
 namespace WPCT_ABSTRACT;
 
-use Exception;
 use ReflectionClass;
+use WP_Plugin_Dependencies;
 
 if (!defined('ABSPATH')) {
     exit();
@@ -33,20 +33,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          * @var string $settings_name Settings store class name.
          */
         protected static $settings_class;
-
-        /**
-         * Handle plugin textdomain.
-         *
-         * @var string $textdomain Plugin text domain.
-         */
-        protected static $textdomain;
-
-        /**
-         * Handle plugin name.
-         *
-         * @var string $name Plugin name.
-         */
-        protected static $name;
 
         /**
          * Handle the instance of the settings store.
@@ -109,15 +95,11 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         protected function construct(...$args)
         {
-            if (empty(static::$name) || empty(static::$textdomain)) {
-                throw new Exception('Bad plugin initialization');
-            }
-
             if (isset(static::$settings_class)) {
-                $this->settings = static::$settings_class::get_instance(static::$textdomain);
+                $this->settings = static::$settings_class::get_instance(static::slug());
 
                 if (isset(static::$menu_class) && static::is_active()) {
-                    $this->menu = static::$menu_class::get_instance(static::$name, static::$textdomain, $this->settings);
+                    $this->menu = static::$menu_class::get_instance(static::name(), static::slug(), $this->settings);
                 }
             }
 
@@ -144,7 +126,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                         return $links;
                     }
 
-                    $url = admin_url('options-general.php?page=' . static::$textdomain);
+                    $url = admin_url('options-general.php?page=' . static::slug());
                     $label = __('Settings');
                     $link = "<a href='{$url}'>{$label}</a>";
                     array_unshift($links, $link);
@@ -170,23 +152,23 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         public static function name()
         {
-            return static::$name;
+            return self::data()['Name'];
         }
 
-	/**
+        /**
          * Plugin slug getter.
          *
          * @return string $slug Plugin's textdomain alias.
          */
         public static function slug()
         {
-            return static::$textdomain;
+            return pathinfo(self::index())['filename'];
         }
 
         /**
          * Plugin index getter.
          *
-         * @return string $index Plugin's index file path.
+         * @return string Plugin's index file.
          */
         public static function index()
         {
@@ -198,11 +180,39 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
         /**
          * Plugin textdomain getter.
          *
-         * @return string $textdomain Plugin textdomain.
+         * @return string Plugin's textdomain.
          */
         public static function textdomain()
         {
-            return static::$textdomain;
+            return self::data()['TextDomain'];
+        }
+
+        /**
+         * Plugin version getter.
+         *
+         * @return string Plugin's version.
+         */
+        public static function version()
+        {
+            return self::data()['Version'];
+        }
+
+        /**
+         * Plugin dependencies getter.
+         *
+         * @return array Plugin's dependencies.
+         */
+        public static function dependencies()
+        {
+            $dependencies = self::data()['RequiresPlugins'];
+            if (empty($dependencies)) {
+                return [];
+            }
+
+            return array_map(function ($plugin) {
+                $plugin = trim($plugin);
+                return $plugin . '/' . $plugin . '.php';
+            }, explode(',', $dependencies));
         }
 
         /**
@@ -210,7 +220,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          *
          * @return array $data Plugin data.
          */
-        public static function data()
+        private static function data()
         {
             include_once(ABSPATH . 'wp-admin/includes/plugin.php');
             $plugins = get_plugins();
@@ -241,7 +251,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
             $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
 
             load_plugin_textdomain(
-                static::$textdomain,
+                static::textdomain(),
                 false,
                 dirname(static::index()) . $domain_path,
             );
@@ -256,7 +266,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         private static function load_mofile($mofile, $domain)
         {
-            if ($domain === static::$textdomain && strpos($mofile, WP_LANG_DIR . '/plugins/') === false) {
+            if ($domain === static::textdomain() && strpos($mofile, WP_LANG_DIR . '/plugins/') === false) {
                 $data = static::data();
                 $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
 

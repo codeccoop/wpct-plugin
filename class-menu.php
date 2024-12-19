@@ -40,7 +40,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          * Class constructor. Set attributes and hooks to wp admin hooks.
          *
          * @param string $name Plugin name.
-         * @param string $slug Plugin textdomain.
+         * @param string $slug Plugin slug.
          */
         protected function construct(...$args)
         {
