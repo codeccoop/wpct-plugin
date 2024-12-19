@@ -223,13 +223,8 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
         private static function data()
         {
             include_once(ABSPATH . 'wp-admin/includes/plugin.php');
-            $plugins = get_plugins();
             $plugin_name = static::index();
-            foreach ($plugins as $plugin => $data) {
-                if ($plugin === $plugin_name) {
-                    return $data;
-                }
-            }
+            return get_plugin_data(WP_PLUGIN_DIR . '/' . $plugin_name, false, false);
         }
 
         /**
