@@ -64,19 +64,19 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
             $this->default = apply_filters('wpct_setting_default', $data, $this->full_name());
             $this->schema = $schema;
 
-            add_action('add_option', function ($option, $value) {
+            add_action('added_option', function ($option, $value) {
                 if ($option === $this->full_name()) {
                     $this->data = $value;
                 }
             }, 5, 2);
 
-            add_action('update_option', function ($option, $from, $to) {
+            add_action('updated_option', function ($option, $from, $to) {
                 if ($option === $this->full_name()) {
                     $this->data = $to;
                 }
             }, 5, 3);
 
-            add_action('delete_option', function ($option) {
+            add_action('deleted_option', function ($option) {
                 if ($option === $this->full_name()) {
                     $this->data = null;
                 }
