@@ -150,7 +150,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                     $section_label,
                     function () use ($setting_name) {
                         $title = __($setting_name . '--description', $this->group);
-                        echo "<p>{$title}</p>";
+                        printf('<p>%s</p>', esc_html($title));
                     },
                     $setting_name,
                 );
@@ -271,9 +271,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
             $is_bool = is_bool($data);
 
             if ($is_bool) {
-                return "<input type='checkbox' name='{$setting_name}[{$field}]' " . ($value ? 'checked' : '') . " />";
+                return sprintf(
+					'<input type="checkbox" name="%s" ' . ($value ? 'checked' : '') . ' />',
+					esc_attr($setting_name . "[{$field}]"),
+				);
             } else {
-                return "<input type='text' name='{$setting_name}[{$field}]' value='{$value}' />";
+                return sprintf(
+					'<input type="text" name="%s" value="%s" />',
+					esc_attr($setting_name . "[{$field}]"),
+					esc_attr($value),
+				);
             }
         }
 
@@ -289,12 +296,12 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         {
             $setting_name = $setting->full_name();
             $table_id = $setting_name . '__' . str_replace('][', '_', $field);
-            $fieldset = "<table id='{$table_id}'>";
+            $fieldset = '<table id="' . esc_attr($table_id) . '">';
             $is_list = is_list($data);
             foreach (array_keys($data) as $key) {
                 $fieldset .= '<tr>';
                 if (!$is_list) {
-                    $fieldset .= "<th>{$key}</th>";
+                    $fieldset .= '<th>' . esc_html($key) . '</th>';
                 }
                 $_field = $field . '][' . $key;
                 $fieldset .= "<td>{$this->field_render($setting, $_field, $data[$key])}</td>";
@@ -318,7 +325,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
             $data = $setting->data();
             ob_start();
             ?>
-        <div class="<?= $setting_name; ?>__<?= $field ?>--controls">
+        <div class="<?php esc_attr($setting_name . '__' . $field) ?>--controls">
             <button class="button button-primary" data-action="add">Add</button>
             <button class="button button-secondary" data-action="remove">Remove</button>
         </div>

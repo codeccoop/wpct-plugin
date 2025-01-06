@@ -9,22 +9,22 @@ $table_id = $setting_name . '__' . str_replace('][', '_', $field);
     (function() {
         function renderRowContent(index) {
             <?php if ($is_array) : ?>
-                return `<table id="<?= $table_id ?>_${index}">
+                return `<table id="<?php echo esc_attr($table_id . '_' . $index) ?>">
           <?php foreach (array_keys($value) as $key) : ?>
             <tr>
-                <th><?= $key ?></th>
-                <td><?= $this->input_render($setting, $field . '][${index}][' . $key, $value[$key]); ?></td>
+                <th><?php echo esc_html($key) ?></th>
+                <td><?php echo $this->input_render($setting, $field . '][${index}][' . $key, $value[$key]); ?></td>
             </tr>
           <?php endforeach; ?>
         </table>`;
             <?php else : ?>
-                return `<?= $this->input_render($setting, $field . '][${index}', $value); ?>`;
+                return `<?php echo $this->input_render($setting, $field . '][${index}', $value); ?>`;
             <?php endif; ?>
         }
 
         function addItem(ev) {
             ev.preventDefault();
-            const table = document.getElementById("<?= $table_id ?>")
+            const table = document.getElementById("<?php echo esc_attr($table_id) ?>")
                 .children[0];
             const tr = document.createElement("tr");
             tr.innerHTML =
@@ -34,7 +34,7 @@ $table_id = $setting_name . '__' . str_replace('][', '_', $field);
 
         function removeItem(ev) {
             ev.preventDefault();
-            const table = document.getElementById("<?= $table_id ?>")
+            const table = document.getElementById("<?php echo esc_attr($table_id) ?>")
                 .children[0];
             const rows = table.children;
             table.removeChild(rows[rows.length - 1]);

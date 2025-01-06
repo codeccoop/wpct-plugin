@@ -88,13 +88,18 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
             ob_start();
             ?>
 			<div class="wrap">
-			<h1><?= get_admin_page_title() ?></h1>
+			<h1><?php echo esc_html(get_admin_page_title()) ?></h1>
 				<form method="post" action="options.php">
 					<nav class="nav-tab-wrapper">
 					<?php foreach ($tabs as $tab => $name) {
 					    $current = $tab === $current_tab ? ' nav-tab-active' : '';
 					    $url = add_query_arg(['page' => $this->slug, 'tab' => $tab], '');
-					    echo "<a class=\"nav-tab{$current}\" href=\"{$url}\">{$name}</a>";
+					    printf(
+							'<a class="nav-tab%s" href="%s">%s</a>',
+							esc_attr($current),
+							esc_url($url),
+							esc_html($name),
+						);
 					} ?>
 					</nav>
 					<?php
