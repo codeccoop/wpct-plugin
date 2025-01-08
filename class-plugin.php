@@ -3,7 +3,6 @@
 namespace WPCT_ABSTRACT;
 
 use ReflectionClass;
-use WP_Plugin_Dependencies;
 
 if (!defined('ABSPATH')) {
     exit();
@@ -128,7 +127,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
 
                     $url = admin_url('options-general.php?page=' . static::slug());
                     $label = __('Settings');
-                    $link = "<a href='{$url}'>{$label}</a>";
+                    $link = sprintf('<a href="%s">%s</a>', esc_url($url), esc_html($label));
                     array_unshift($links, $link);
                     return $links;
                 },
@@ -224,7 +223,8 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
         {
             include_once(ABSPATH . 'wp-admin/includes/plugin.php');
             $plugin_name = static::index();
-            return get_plugin_data(WP_PLUGIN_DIR . '/' . $plugin_name, false, false);
+            $plugin_dir = WP_PLUGIN_DIR . '/' . $plugin_name;
+            return get_plugin_data($plugin_dir, false, false);
         }
 
         /**
@@ -261,13 +261,13 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         private static function load_mofile($mofile, $domain)
         {
-            if ($domain === static::textdomain() && strpos($mofile, WP_LANG_DIR . '/plugins/') === false) {
-                $data = static::data();
-                $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
+            // if ($domain === static::textdomain() && strpos($mofile, WP_LANG_DIR . '/plugins/') === false) {
+            //     $data = static::data();
+            //     $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
 
-                $locale = apply_filters('plugin_locale', determine_locale(), $domain);
-                $mofile = WP_PLUGIN_DIR . '/' . dirname(static::index()) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
-            }
+            //     $locale = apply_filters('plugin_locale', determine_locale(), $domain);
+            //     $mofile = WP_PLUGIN_DIR . '/' . dirname(static::index()) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
+            // }
 
             return $mofile;
         }
