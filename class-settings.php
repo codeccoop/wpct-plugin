@@ -230,6 +230,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
             if (!is_array($value)) {
                 return $this->input_render($setting, $field, $value);
             } else {
+                $schema = $setting->schema($field);
                 $fieldset = $this->fieldset_render($setting, $field, $value);
                 if ($is_root && is_list($value)) {
                     $this->control_style($setting, $field);
@@ -252,28 +253,44 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         protected function input_render($setting, $field, $value)
         {
             $setting_name = $setting->full_name();
-            $data = $setting->data();
-            $schema = $setting->schema();
             $keys = explode('][', $field);
+            $schema = $setting->schema($keys[0]);
+            $value = $setting->data($keys[0]);
 
-            $is_list = is_list($data);
-            for ($i = 0; $i < count($keys); $i++) {
+            $is_list = is_list($value);
+            for ($i = 1; $i < count($keys); $i++) {
                 $key = $keys[$i];
                 if ($is_list) {
                     $key = (int) $key;
                 }
-                $data = $data[$key];
-                if ($i === 0) {
-                    $schema = $schema[$key];
+                $value = $value[$key];
+                if ($schema['type'] === 'object') {
+                    $schema = $schema['properties'][$key];
+                } else {
+                    $schema = $schema['items'];
                 }
-                $is_list = is_list($data);
+                $is_list = is_list($value);
             }
-            $is_bool = is_bool($data);
+            $is_bool = is_bool($value);
 
             if ($is_bool) {
                 return sprintf(
                     '<input type="checkbox" name="%s" ' . ($value ? 'checked' : '') . ' />',
                     esc_attr($setting_name . "[{$field}]"),
+                );
+            } elseif (isset($schema['enum'])) {
+                $options = implode('', array_map(function ($opt) use ($value) {
+                    return sprintf(
+                        '<option value="%s" %s>%s</option>',
+                        esc_attr($opt),
+                        $value === $opt ? 'selected' : '',
+                        esc_html($opt),
+                    );
+                }, (array) $schema['enum']));
+                return sprintf(
+                    '<select name="%s">%s</select>',
+                    esc_attr($setting_name . "[{$field}]"),
+                    $options,
                 );
             } else {
                 return sprintf(
@@ -325,18 +342,36 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         {
             $setting_name = $setting->full_name();
             $control_class = esc_attr($setting_name . '__' . $field . '--controls');
-            $field_value = $setting->data()[$field][0];
+            $value = $setting->data()[$field][0];
 
+            ob_start();
             ?>
-			<div class="<?php echo $control_class ?>>
+			<div class="<?php echo $control_class ?>">
 				<button class="button button-primary" data-action="add">Add</button>
 				<button class="button button-secondary" data-action="remove">Remove</button>
 			</div>
 			<?php
-            $control_script = include 'fieldset-control-js.php';
-            wp_print_inline_script_tag($control_script, [
+            wp_print_inline_script_tag($this->control_script($setting, $field, $value), [
                 'data-control' => $control_class,
             ]);
+
+            return ob_get_clean();
+        }
+
+        /**
+         * Include localized fieldset control script and return the buffer as string.
+         *
+         * @param Setting $setting Setting instance.
+         * @param string $field_name Setting's field name.
+         * @param mixed $field_value Setting's field value.
+         *
+         * @return string Fieldset control rendered script.
+         */
+        private function control_script($setting, $field_name, $field_value)
+        {
+            ob_start();
+            include 'fieldset-control-js.php';
+            return ob_get_clean();
         }
 
         /**

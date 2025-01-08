@@ -3,7 +3,7 @@
  * Fieldset Control Script.
  *
  * @param Setting $setting - Instance of the setting object.
- * @param string $setting_name - Full name of the setting.
+ * @param string $field_name - Name of the current field.
  * @param mixed $field_value - Value of the current field.
  * @param Settings $this - Instance of the settings store.
  */
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
 }
 
 $is_array = is_array($field_value);
-$table_id = $setting_name . '__' . str_replace('][', '_', $field);
+$table_id = $setting->full_name() . '__' . str_replace('][', '_', $field_name);
 ?>
 
 (function() {
@@ -23,12 +23,12 @@ $table_id = $setting_name . '__' . str_replace('][', '_', $field);
 			<?php foreach (array_keys($field_value) as $key) : ?>
 				<tr>
 					<th><?php echo esc_html($key) ?></th>
-					<td><?php echo $this->input_render($setting, $field . '][${index}][' . $key, $field_value[$key]); ?></td>
+					<td><?php echo $this->input_render($setting, implode('][', [$field_name, $index, $key]), $field_value[$key]); ?></td>
 				</tr>
 			<?php endforeach; ?>
 			</table>`;
 		<?php else : ?>
-			return `<?php echo $this->input_render($setting, $field . '][${index}', $field_value); ?>`;
+			return `<?php echo $this->input_render($setting, implode('][', [$field_name, $index]), $field_value); ?>`;
 		<?php endif; ?>
 	}
 
