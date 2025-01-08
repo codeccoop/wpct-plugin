@@ -215,13 +215,13 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
 
                 $section_name = $setting_name . '_section';
                 /* translators: %s: Setting name */
-                $section_label = __($setting_name . '--title', $this->group);
+                $section_label = sprintf(__('%s--title', 'wpct-plugin-abstracts'), $setting_name);
                 add_settings_section(
                     $section_name,
                     $section_label,
                     function () use ($setting_name) {
                         /* translators: %s: Setting name */
-                        $title = __($setting_name . '--description', $this->group);
+                        $title = sprintf(__('%s--description', 'wpct-plugin-abstracts'), $setting_name);
                         printf('<p>%s</p>', esc_html($title));
                     },
                     $setting_name,
@@ -244,7 +244,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
             $setting_name = $setting->full_name();
             $field_id = $setting_name . '__' . $field;
             /* translators: %s: Setting name concatenated with two underscores with the field name */
-            $field_label = sprintf(__('%s--label', $this->group), $field_id);
+            $field_label = sprintf(__('%s--label', 'wpct-plugin-abstracts'), $field_id);
 
             add_settings_field(
                 $field,

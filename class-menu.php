@@ -83,10 +83,10 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
             $tabs = array_reduce($page_settings, function ($carry, $setting) {
                 $setting_name = $setting->full_name();
                 /* translators: %s: Setting name */
-                $carry[$setting_name] = sprintf(esc_html__('%s--title', $this->slug), $setting_name);
+                $carry[$setting_name] = sprintf(esc_html__('%s--title', 'wpct-plugin-abstracts'), $setting_name);
                 return $carry;
             }, []);
-            $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : array_key_first($tabs);
+            $current_tab = isset($_GET['tab']) ? sanitize_text_field(wp_unslash($_GET['tab'])) : array_key_first($tabs);
             ob_start();
             ?>
 			<div class="wrap">
