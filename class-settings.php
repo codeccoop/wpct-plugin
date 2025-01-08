@@ -232,8 +232,8 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
             } else {
                 $fieldset = $this->fieldset_render($setting, $field, $value);
                 if ($is_root && is_list($value)) {
-                    $fieldset = $this->control_style($setting, $field)
-                        . $fieldset . $this->control_render($setting, $field);
+                    $this->control_style($setting, $field);
+                    $fieldset .= $this->control_render($setting, $field);
                 }
 
                 return $fieldset;
@@ -243,7 +243,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         /**
          * Render input HTML.
          *
-         * @param Setting $setting name.
+         * @param Setting $setting Setting instance.
          * @param string $field Field name.
          * @param string $value Field value.
          *
@@ -272,15 +272,15 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
 
             if ($is_bool) {
                 return sprintf(
-					'<input type="checkbox" name="%s" ' . ($value ? 'checked' : '') . ' />',
-					esc_attr($setting_name . "[{$field}]"),
-				);
+                    '<input type="checkbox" name="%s" ' . ($value ? 'checked' : '') . ' />',
+                    esc_attr($setting_name . "[{$field}]"),
+                );
             } else {
                 return sprintf(
-					'<input type="text" name="%s" value="%s" />',
-					esc_attr($setting_name . "[{$field}]"),
-					esc_attr($value),
-				);
+                    '<input type="text" name="%s" value="%s" />',
+                    esc_attr($setting_name . "[{$field}]"),
+                    esc_attr($value),
+                );
             }
         }
 
@@ -290,6 +290,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          * @param Setting $setting Setting instance.
          * @param string $field Field name.
          * @param array $data Setting data.
+         *
          * @return string $html Fieldset HTML.
          */
         private function fieldset_render($setting, $field, $data)
@@ -315,36 +316,43 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         /**
          * Render control HTML.
          *
-         * @param Setting $setting Setting name.
+         * @param Setting $setting Setting instance.
          * @param string $field Field name.
+         *
          * @return string $html Control HTML.
          */
         private function control_render($setting, $field)
         {
             $setting_name = $setting->full_name();
-            $data = $setting->data();
-            ob_start();
+            $control_class = esc_attr($setting_name . '__' . $field . '--controls');
+            $field_value = $setting->data()[$field][0];
+
             ?>
-        <div class="<?php esc_attr($setting_name . '__' . $field) ?>--controls">
-            <button class="button button-primary" data-action="add">Add</button>
-            <button class="button button-secondary" data-action="remove">Remove</button>
-        </div>
-		<?php
-            include 'fieldset-control-js.php';
-            return ob_get_clean();
+			<div class="<?php echo $control_class ?>>
+				<button class="button button-primary" data-action="add">Add</button>
+				<button class="button button-secondary" data-action="remove">Remove</button>
+			</div>
+			<?php
+            $control_script = include 'fieldset-control-js.php';
+            wp_print_inline_script_tag($control_script, [
+                'data-control' => $control_class,
+            ]);
         }
 
         /**
          * Render control style tag.
          *
-         * @param string $setting Setting name.
+         * @param Setting $setting Setting instance.
          * @param string $field Field name.
+         *
          * @return string $tag Style HTML tag with control styles.
          */
         private function control_style($setting, $field)
         {
-            $setting_name = $this->setting_name($setting);
-            return "<style>#{$setting_name}__{$field} td td,#{$setting_name}__{$field} td th{padding:0}#{$setting_name}__{$field} table table{margin-bottom:1rem}</style>";
+            $setting_name = $setting->full_name();
+            add_action('admin_print_styles', function () use ($setting_name, $field) {
+                echo "#{$setting_name}__{$field} td td,#{$setting_name}__{$field} td th{padding:0}#{$setting_name}__{$field} table table{margin-bottom:1rem}";
+            });
         }
     }
 }
