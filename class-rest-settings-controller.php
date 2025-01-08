@@ -22,28 +22,28 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         /**
          * Handle REST API controller namespace.
          *
-         * @var string $namespace REST API namespace.
+         * @var string
          */
         protected static $namespace = 'wpct';
 
         /**
          * Handle REST API controller namespace version.
          *
-         * @var int $version REST API namespace version.
+         * @var int
          */
         protected static $version = 1;
 
         /**
         * Handle plugin settings group name.
         *
-        * @var string $group Settings group name.
+        * @var string
         */
         protected $group;
 
         /**
          * Handle plugin settings names.
          *
-         * @var array<string> $settings Plugin settings names list.
+         * @var array<string>
          */
         protected static $settings = ['general'];
 
@@ -51,11 +51,80 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          * Setup a new rest settings controller.
          *
          * @param string $group Plugin settings group name.
-         * @return object $controller Instance of REST_Controller.
+		 *
+         * @return object Instance of REST_Controller.
          */
         public static function setup($group)
         {
             return static::class::get_instance($group);
+        }
+
+		/**
+		 * Public settings sanitization method.
+		 *
+		 * @param string $group Settings group.
+		 * @param string $name Setting name.
+		 * @param array $data Setting data.
+		 *
+		 * @return array Sanitized setting data.
+		 */
+        public static function sanitize_settings($group, $name, $data)
+        {
+            $schema = Settings::get_setting($group, $name)->schema();
+            return self::_sanitize_setting($schema, $data);
+        }
+
+		/**
+		 * Private setting sanitization method.
+		 *
+		 * @param array $schema Setting schema.
+		 * @param array $data Setting data.
+		 *
+		 * @return array Sanitized data.
+		 */
+        private static function _sanitize_setting($schema, $data)
+        {
+            $sanitized = (array) $data;
+            foreach ($data as $field => $value) {
+                if (!isset($schema['properties'][$field])) {
+                    unset($sanitized[$field]);
+                }
+
+                $sanitized[$field] = self::_sanitize_value($schema['properties'][$field], $value);
+            }
+
+            return $sanitized;
+        }
+
+		/**
+		 * Sanitize value by schema type.
+		 *
+		 * @param array $schema Field schema.
+		 * @aram mixed $value Field value.
+		 *
+		 * @return mixed Sanitized field value.
+		 */
+        private static function _sanitize_value($schema, $value)
+        {
+            switch ($schema['type']) {
+                case 'text':
+                    return sanitize_text_field($value);
+                case 'number':
+                    return (float) $value;
+                case 'integer':
+                    return (int) $value;
+                case 'null':
+                    return null;
+                case 'boolean':
+                    return (bool) $value;
+                case 'array':
+                    return array_map(static function ($item) use ($schema) {
+                        return self::_sanitize_value($schema['items'], $item);
+                    }, array_values($value));
+                    break;
+                case 'object':
+                    return self::_sanitize_settings($schema, $value);
+            }
         }
 
         /**
@@ -81,6 +150,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         {
             [$group] = $args;
             $this->group = $group;
+
             add_action('rest_api_init', function () {
                 $this->init();
             });
@@ -96,7 +166,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             $version = static::$version;
             $settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
             $schema = array_reduce($settings, function ($schema, $setting_name) {
-                $setting_schema = (Settings::get_setting($this->group, $setting_name))->schema();
+                $setting_schema = Settings::get_setting($this->group, $setting_name)->schema();
                 $schema['properties'][$setting_name] = [
                     'type' => 'object',
                     'properties' => $setting_schema,
@@ -130,6 +200,9 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                         'permission_callback' => function () {
                             return $this->permission_callback();
                         },
+                        'sanitize_callback' => function ($value) use ($schema) {
+                            return $this->_sanitize_settings($schema, $value);
+                        },
                     ],
                     'schema' => $schema,
                     'allow_batch' => ['v1' => false],
@@ -147,10 +220,10 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             $data = [];
             $settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
             foreach ($settings as $setting) {
-                $data[$setting] = (Settings::get_setting(
+                $data[$setting] = Settings::get_setting(
                     $this->group,
                     $setting
-                ))->data();
+                )->data();
             }
 
             return $data;
@@ -159,7 +232,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         /**
          * POST requests settings endpoint callback. Store settings on the options table.
          *
-         * @return array $response New settings state.
+         * @return array New settings state.
          */
         private function set_settings()
         {
@@ -189,7 +262,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         /**
          * Check if current user can manage options.
          *
-         * @return boolean $allowed
+         * @return boolean
          */
         protected function permission_callback()
         {
