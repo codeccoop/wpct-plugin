@@ -62,6 +62,73 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         }
 
         /**
+         * Private setting sanitization method.
+         *
+         * @param string $setting_name Setting name.
+         * @param array $schema Setting schema.
+         * @param array $data Setting data.
+         *
+         * @return array Sanitized data.
+         */
+        private static function sanitize_setting($group, $name, $data)
+        {
+            $setting = self::get_setting($group, $name);
+            $schema = $setting->schema();
+
+            $data = apply_filters('wpct_validate_setting', $data, $setting);
+            $sanitized = [];
+            foreach ($data as $field => $value) {
+                if (!isset($schema['properties'][$field])) {
+                    continue;
+                }
+
+                $sanitized[$field] = self::_sanitize_value($schema['properties'][$field], $value);
+            }
+
+            return $sanitized;
+        }
+
+        /**
+         * Sanitize value by schema type.
+         *
+         * @param array $schema Field schema.
+         * @aram mixed $value Field value.
+         *
+         * @return mixed Sanitized field value.
+         */
+        private static function _sanitize_value($schema, $value)
+        {
+            switch ($schema['type']) {
+                case 'string':
+                    $value = sanitize_text_field($value);
+                    if (isset($schema['enum'])) {
+                        $value = in_array($value, $schema['enum']) ? $value : null;
+                    }
+                    return $value;
+                case 'number':
+                    return (float) $value;
+                case 'integer':
+                    return (int) $value;
+                case 'null':
+                    return null;
+                case 'boolean':
+                    return (bool) $value;
+                case 'array':
+                    return array_map(static function ($item) use ($schema) {
+                        return self::_sanitize_value($schema['items'], $item);
+                    }, array_values($value));
+                    break;
+                case 'object':
+                    return array_reduce(array_keys($value), static function ($sanitized, $key) use ($schema, $value) {
+                        if (isset($schema['properties'][$key])) {
+                            $sanitized[$key] = self::_sanitize_value($schema['properties'][$key], $value[$key]);
+                        }
+                        return $sanitized;
+                    }, []);
+            }
+        }
+
+        /**
          * Class constructor. Store the group name and hooks to pre_update_option.
          *
          * @param string $group Settings group name.
@@ -133,6 +200,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                         'name' => $setting_name,
                         'schema' => $schema,
                     ],
+                    'sanitize_callback' => function ($value) use ($name) {
+                        return self::sanitize_setting($this->group(), $name, $value);
+                    },
                     'default' => $default,
                 ],
             );
@@ -144,11 +214,13 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                 $setting_name = $setting->full_name();
 
                 $section_name = $setting_name . '_section';
+                /* translators: %s: Setting name */
                 $section_label = __($setting_name . '--title', $this->group);
                 add_settings_section(
                     $section_name,
                     $section_label,
                     function () use ($setting_name) {
+                        /* translators: %s: Setting name */
                         $title = __($setting_name . '--description', $this->group);
                         printf('<p>%s</p>', esc_html($title));
                     },
@@ -171,7 +243,8 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         {
             $setting_name = $setting->full_name();
             $field_id = $setting_name . '__' . $field;
-            $field_label = __($field_id . '--label', $this->group);
+            /* translators: %s: Setting name concatenated with two underscores with the field name */
+            $field_label = sprintf(__('%s--label', $this->group), $field_id);
 
             add_settings_field(
                 $field,

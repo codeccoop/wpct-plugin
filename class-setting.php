@@ -81,14 +81,6 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
                     $this->data = null;
                 }
             }, 5);
-
-            add_filter('pre_update_option', function ($value, $option) {
-                if ($option === $this->full_name()) {
-                    return $this->sanitize($value);
-                }
-
-                return $value;
-            }, 10, 2);
         }
 
         /**
@@ -221,34 +213,16 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
 
             $name = $target;
             $target = $this->$target;
-            if ($name === 'schema') {
-                $target = $target['properties'];
-            }
 
             if ($field === null) {
                 return $target;
             }
 
+			if ($name === 'schema') {
+				$target = $target['properties'];
+			}
+
             return isset($target[$field]) ? $target[$field] : null;
-        }
-
-        /**
-         * Sanitize setting data before database inserts.
-         *
-         * @param string $option Setting name.
-         * @param array $value Setting data.
-         *
-         * @return array $value Sanitized setting data.
-         */
-        protected function sanitize($value)
-        {
-            $value = apply_filters('wpct_sanitize_setting', $value, $this);
-
-            if (!rest_validate_value_from_schema($value, $this->schema)) {
-                return new WP_Error('rest_invalid_schema', 'The setting is not schema conformant', ['value' => $value, 'schema' => $schema]);
-            }
-
-            return rest_sanitize_value_from_schema($value, $this->schema);
         }
     }
 }

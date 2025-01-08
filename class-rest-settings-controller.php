@@ -59,73 +59,6 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             return static::class::get_instance($group);
         }
 
-        /**
-         * Public settings sanitization method.
-         *
-         * @param string $group Settings group.
-         * @param string $name Setting name.
-         * @param array $data Setting data.
-         *
-         * @return array Sanitized setting data.
-         */
-        public static function sanitize_settings($group, $name, $data)
-        {
-            $schema = Settings::get_setting($group, $name)->schema();
-            return self::_sanitize_setting($schema, $data);
-        }
-
-        /**
-         * Private setting sanitization method.
-         *
-         * @param array $schema Setting schema.
-         * @param array $data Setting data.
-         *
-         * @return array Sanitized data.
-         */
-        private static function _sanitize_setting($schema, $data)
-        {
-            $sanitized = (array) $data;
-            foreach ($data as $field => $value) {
-                if (!isset($schema['properties'][$field])) {
-                    unset($sanitized[$field]);
-                }
-
-                $sanitized[$field] = self::_sanitize_value($schema['properties'][$field], $value);
-            }
-
-            return $sanitized;
-        }
-
-        /**
-         * Sanitize value by schema type.
-         *
-         * @param array $schema Field schema.
-         * @aram mixed $value Field value.
-         *
-         * @return mixed Sanitized field value.
-         */
-        private static function _sanitize_value($schema, $value)
-        {
-            switch ($schema['type']) {
-                case 'text':
-                    return sanitize_text_field($value);
-                case 'number':
-                    return (float) $value;
-                case 'integer':
-                    return (int) $value;
-                case 'null':
-                    return null;
-                case 'boolean':
-                    return (bool) $value;
-                case 'array':
-                    return array_map(static function ($item) use ($schema) {
-                        return self::_sanitize_value($schema['items'], $item);
-                    }, array_values($value));
-                    break;
-                case 'object':
-                    return self::_sanitize_setting($schema, $value);
-            }
-        }
 
         /**
          * Internal WP_Error proxy.
@@ -164,20 +97,6 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             // register settings endpoint
             $namespace = static::$namespace;
             $version = static::$version;
-            $settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
-            $schema = array_reduce($settings, function ($schema, $setting_name) {
-                $setting_schema = Settings::get_setting($this->group, $setting_name)->schema();
-                $schema['properties'][$setting_name] = [
-                    'type' => 'object',
-                    'properties' => $setting_schema,
-                ];
-                return $schema;
-            }, [
-                '$schema' => 'http://json-schema.org/draft-04/schema#',
-                'title' => $this->group,
-                'type' => 'object',
-                'properties' => [],
-            ]);
 
             register_rest_route(
                 "{$namespace}/v{$version}",
@@ -188,8 +107,8 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                         'callback' => function () {
                             return $this->get_settings();
                         },
-                        'permission_callback' => function () {
-                            return $this->permission_callback();
+                        'permission_callback' => static function () {
+                            return self::permission_callback();
                         },
                     ],
                     [
@@ -197,17 +116,33 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                         'callback' => function () {
                             return $this->set_settings();
                         },
-                        'permission_callback' => function () {
-                            return $this->permission_callback();
-                        },
-                        'sanitize_callback' => function ($value) use ($schema) {
-                            return $this->_sanitize_setting($schema, $value);
+                        'permission_callback' => static function () {
+                            return self::permission_callback();
                         },
                     ],
-                    'schema' => $schema,
+                    'schema' => function () {
+                        return $this->schema();
+                    },
                     'allow_batch' => ['v1' => false],
                 ],
             );
+        }
+
+        private function schema()
+        {
+            $settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
+            $schema = array_reduce($settings, function ($schema, $setting_name) {
+                $setting_schema = Settings::get_setting($this->group, $setting_name)->schema();
+                unset($setting_schema['additionalProperties']);
+                $schema['properties'][$setting_name] = $setting_schema;
+                return $schema;
+            }, [
+                '$schema' => 'http://json-schema.org/draft-04/schema#',
+                'title' => $this->group,
+                'type' => 'object',
+                'properties' => [],
+            ]);
+			return $schema;
         }
 
         /**
@@ -264,7 +199,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          *
          * @return boolean
          */
-        protected function permission_callback()
+        protected static function permission_callback()
         {
             return current_user_can('manage_options')
                 ? true
