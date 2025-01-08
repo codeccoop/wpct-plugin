@@ -9,17 +9,18 @@
  */
 
 if (!defined('ABSPATH')) {
-	exit();
+    exit();
 }
 
-$is_array = is_array($field_value);
 $table_id = $setting->full_name() . '__' . str_replace('][', '_', $field_name);
+$control_id = $setting->full_name() . '__' . $field_name . '--controls';
 ?>
 
+<script>
 (function() {
 	function renderRowContent(index) {
-		<?php if ($is_array) : ?>
-			return `<table id="<?php echo esc_attr($table_id . '_' . $index) ?>">
+		<?php if (is_array($field_value)) : ?>
+			return `<table id="<?php echo esc_attr($table_id . '_' . $index); ?>">
 			<?php foreach (array_keys($field_value) as $key) : ?>
 				<tr>
 					<th><?php echo esc_html($key) ?></th>
@@ -34,7 +35,7 @@ $table_id = $setting->full_name() . '__' . str_replace('][', '_', $field_name);
 
 	function addItem(ev) {
 		ev.preventDefault();
-		const table = document.getElementById("<?php echo esc_attr($table_id) ?>")
+		const table = document.getElementById("<?php echo esc_attr($table_id); ?>")
 			.children[0];
 		const tr = document.createElement("tr");
 		tr.innerHTML = "<td>" + renderRowContent(table.children.length) + "</td>";
@@ -43,16 +44,16 @@ $table_id = $setting->full_name() . '__' . str_replace('][', '_', $field_name);
 
 	function removeItem(ev) {
 		ev.preventDefault();
-		const table = document.getElementById("<?php echo esc_attr($table_id) ?>").children[0];
+		const table = document.getElementById("<?php echo esc_attr($table_id); ?>").children[0];
 		const rows = table.children;
 		table.removeChild(rows[rows.length - 1]);
 	}
 
-	const target = document.currentScript.dataset.control;
-	const control = document.querySelector("." + target);
+	const control = document.getElementById("<?php echo esc_attr($control_id); ?>");
 	const buttons = control.querySelectorAll("button");
 	buttons.forEach((btn) => {
 		const callback = btn.dataset.action === "add" ? addItem : removeItem;
 		btn.addEventListener("click", callback);
 	});
 })();
+</script>

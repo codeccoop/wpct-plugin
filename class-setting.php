@@ -2,8 +2,6 @@
 
 namespace WPCT_ABSTRACT;
 
-use WP_Error;
-
 if (!defined('ABSPATH')) {
     exit();
 }

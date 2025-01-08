@@ -303,7 +303,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
             if (!is_array($value)) {
                 return $this->input_render($setting, $field, $value);
             } else {
-                $schema = $setting->schema($field);
                 $fieldset = $this->fieldset_render($setting, $field, $value);
                 if ($is_root && is_list($value)) {
                     $this->control_style($setting, $field);
@@ -413,20 +412,23 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          */
         private function control_render($setting, $field)
         {
-            $setting_name = $setting->full_name();
-            $control_class = esc_attr($setting_name . '__' . $field . '--controls');
             $value = $setting->data()[$field][0];
+
+            add_action('admin_print_scripts', function () use (
+                $setting,
+                $field,
+                $value
+            ) {
+                $this->control_script($setting, $field, $value);
+            });
 
             ob_start();
             ?>
-			<div class="<?php echo $control_class ?>">
+			<div id="<?php echo esc_attr($setting->full_name() . '__' . $field . '--controls'); ?>">
 				<button class="button button-primary" data-action="add">Add</button>
 				<button class="button button-secondary" data-action="remove">Remove</button>
 			</div>
 			<?php
-            wp_print_inline_script_tag($this->control_script($setting, $field, $value), [
-                'data-control' => $control_class,
-            ]);
 
             return ob_get_clean();
         }
@@ -442,9 +444,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          */
         private function control_script($setting, $field_name, $field_value)
         {
-            ob_start();
             include 'fieldset-control-js.php';
-            return ob_get_clean();
         }
 
         /**
@@ -459,7 +459,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         {
             $setting_name = $setting->full_name();
             add_action('admin_print_styles', function () use ($setting_name, $field) {
-                echo "#{$setting_name}__{$field} td td,#{$setting_name}__{$field} td th{padding:0}#{$setting_name}__{$field} table table{margin-bottom:1rem}";
+                echo "<style>#{$setting_name}__{$field} td td,#{$setting_name}__{$field} td th{padding:0}#{$setting_name}__{$field} table table{margin-bottom:1rem}</style>";
             });
         }
     }
@@ -471,7 +471,8 @@ if (!function_exists('\WPCT_ABSTRACT\is_list')) {
      * Check if array is positional.
      *
      * @param array $arr Target array.
-     * @return boolean $is_list Result.
+     *
+     * @return boolean
      */
     function is_list($arr)
     {
