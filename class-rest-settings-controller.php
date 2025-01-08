@@ -51,7 +51,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          * Setup a new rest settings controller.
          *
          * @param string $group Plugin settings group name.
-		 *
+         *
          * @return object Instance of REST_Controller.
          */
         public static function setup($group)
@@ -59,29 +59,29 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             return static::class::get_instance($group);
         }
 
-		/**
-		 * Public settings sanitization method.
-		 *
-		 * @param string $group Settings group.
-		 * @param string $name Setting name.
-		 * @param array $data Setting data.
-		 *
-		 * @return array Sanitized setting data.
-		 */
+        /**
+         * Public settings sanitization method.
+         *
+         * @param string $group Settings group.
+         * @param string $name Setting name.
+         * @param array $data Setting data.
+         *
+         * @return array Sanitized setting data.
+         */
         public static function sanitize_settings($group, $name, $data)
         {
             $schema = Settings::get_setting($group, $name)->schema();
             return self::_sanitize_setting($schema, $data);
         }
 
-		/**
-		 * Private setting sanitization method.
-		 *
-		 * @param array $schema Setting schema.
-		 * @param array $data Setting data.
-		 *
-		 * @return array Sanitized data.
-		 */
+        /**
+         * Private setting sanitization method.
+         *
+         * @param array $schema Setting schema.
+         * @param array $data Setting data.
+         *
+         * @return array Sanitized data.
+         */
         private static function _sanitize_setting($schema, $data)
         {
             $sanitized = (array) $data;
@@ -96,14 +96,14 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             return $sanitized;
         }
 
-		/**
-		 * Sanitize value by schema type.
-		 *
-		 * @param array $schema Field schema.
-		 * @aram mixed $value Field value.
-		 *
-		 * @return mixed Sanitized field value.
-		 */
+        /**
+         * Sanitize value by schema type.
+         *
+         * @param array $schema Field schema.
+         * @aram mixed $value Field value.
+         *
+         * @return mixed Sanitized field value.
+         */
         private static function _sanitize_value($schema, $value)
         {
             switch ($schema['type']) {
@@ -123,7 +123,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                     }, array_values($value));
                     break;
                 case 'object':
-                    return self::_sanitize_settings($schema, $value);
+                    return self::_sanitize_setting($schema, $value);
             }
         }
 
@@ -134,9 +134,9 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          * @param string $message
          * @param int $status
          */
-        private static function error($code, $message, $status, $textdomain)
+        private static function error($code, $message, $status)
         {
-            return new WP_Error($code, __($message, $textdomain), [
+            return new WP_Error($code, $message, [
                 'status' => $status,
             ]);
         }
@@ -201,7 +201,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                             return $this->permission_callback();
                         },
                         'sanitize_callback' => function ($value) use ($schema) {
-                            return $this->_sanitize_settings($schema, $value);
+                            return $this->_sanitize_setting($schema, $value);
                         },
                     ],
                     'schema' => $schema,
@@ -245,7 +245,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                         continue;
                     }
 
-                    $from = (Settings::get_setting($this->group, $setting))->data();
+                    $from = Settings::get_setting($this->group, $setting)->data();
                     $to = $data[$setting];
                     foreach (array_keys($from) as $key) {
                         $to[$key] = isset($to[$key]) ? $to[$key] : $from[$key];
@@ -255,7 +255,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                 }
                 return ['success' => true];
             } catch (Error $e) {
-                return self::error($e->getCode(), $e->getMessage(), ['data' => $data], $this->group);
+                return self::error($e->getCode(), $e->getMessage(), ['data' => $data]);
             }
         }
 
@@ -272,7 +272,6 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                     'rest_unauthorized',
                     'You can\'t manage wp options',
                     403,
-                    $this->group,
                 );
         }
     }
