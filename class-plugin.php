@@ -107,10 +107,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                 static::load_textdomain();
             });
 
-            add_filter('load_textdomain_mofile', function ($mofile, $domain) {
-                return static::load_mofile($mofile, $domain);
-            }, 10, 2);
-
             add_filter(
                 'plugin_action_links',
                 static function ($links, $file) {
@@ -250,26 +246,6 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                 false,
                 dirname(static::index()) . $domain_path,
             );
-        }
-
-        /**
-         * Load plugin mofile.
-         *
-         * @param string $mofile Plugin mofile path.
-         * @param string $domain Plugin textdomain.
-         * @return string $mofile Plugin mofile path.
-         */
-        private static function load_mofile($mofile, $domain)
-        {
-            // if ($domain === static::textdomain() && strpos($mofile, WP_LANG_DIR . '/plugins/') === false) {
-            //     $data = static::data();
-            //     $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
-
-            //     $locale = apply_filters('plugin_locale', determine_locale(), $domain);
-            //     $mofile = WP_PLUGIN_DIR . '/' . dirname(static::index()) . $domain_path . '/' . $domain . '-' . $locale . '.mo';
-            // }
-
-            return $mofile;
         }
     }
 }
