@@ -62,7 +62,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
         {
             add_options_page(
                 $this->name,
-                __($this->name, $this->slug),
+                $this->name,
                 'manage_options',
                 $this->slug,
                 function () {
@@ -81,10 +81,12 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
         {
             $page_settings = $this->settings->settings();
             $tabs = array_reduce($page_settings, function ($carry, $setting) {
-                $carry[$setting] = __($setting . '--title', $this->slug);
+                $setting_name = $setting->full_name();
+                /* translators: %s: Setting name */
+                $carry[$setting_name] = sprintf(esc_html__('%s--title', $this->slug), $setting_name);
                 return $carry;
             }, []);
-            $current_tab = isset($_GET['tab']) ? $_GET['tab'] : array_key_first($tabs);
+            $current_tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : array_key_first($tabs);
             ob_start();
             ?>
 			<div class="wrap">
@@ -92,19 +94,19 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
 				<form method="post" action="options.php">
 					<nav class="nav-tab-wrapper">
 					<?php foreach ($tabs as $tab => $name) {
-					    $current = $tab === $current_tab ? ' nav-tab-active' : '';
+					    $current = $tab === $current_tab ? 'nav-tab-active' : '';
 					    $url = add_query_arg(['page' => $this->slug, 'tab' => $tab], '');
 					    printf(
-							'<a class="nav-tab%s" href="%s">%s</a>',
-							esc_attr($current),
-							esc_url($url),
-							esc_html($name),
-						);
+					        '<a class="nav-tab %s" href="%s">%s</a>',
+					        esc_attr($current),
+					        esc_url($url),
+					        esc_html($name),
+					    );
 					} ?>
 					</nav>
 					<?php
-					    settings_fields("{$current_tab}");
-            do_settings_sections("{$current_tab}");
+					settings_fields($current_tab);
+            do_settings_sections($current_tab);
             submit_button();
             ?>
 				</form>
