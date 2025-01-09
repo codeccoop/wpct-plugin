@@ -113,8 +113,8 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                     ],
                     [
                         'methods' => WP_REST_Server::CREATABLE,
-                        'callback' => function () {
-                            return $this->set_settings();
+                        'callback' => function ($request) {
+                            return $this->set_settings($request);
                         },
                         'permission_callback' => static function () {
                             return self::permission_callback();
@@ -142,7 +142,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                 'type' => 'object',
                 'properties' => [],
             ]);
-			return $schema;
+            return $schema;
         }
 
         /**
@@ -167,12 +167,14 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         /**
          * POST requests settings endpoint callback. Store settings on the options table.
          *
+         * @param REST_Request $request Input rest request.
+         *
          * @return array New settings state.
          */
-        private function set_settings()
+        private function set_settings($request)
         {
             try {
-                $data = (array) json_decode(sanitize_text_field(file_get_contents('php://input')), true);
+                $data = $request->json_params();
 
                 $settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
                 foreach ($settings as $setting) {
