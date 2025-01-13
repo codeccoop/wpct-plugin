@@ -172,6 +172,12 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
             return plugin_basename($__FILE__);
         }
 
+        public static function path()
+        {
+            $reflector = new ReflectionClass(static::class);
+            return plugin_dir_path($reflector->getFileName());
+        }
+
         /**
          * Plugin textdomain getter.
          *
@@ -218,8 +224,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
         private static function data()
         {
             include_once(ABSPATH . 'wp-admin/includes/plugin.php');
-            $plugin_name = static::index();
-            $plugin_dir = WP_PLUGIN_DIR . '/' . $plugin_name;
+            $plugin_dir = static::path() . basename(self::index());
             return get_plugin_data($plugin_dir, false, false);
         }
 
