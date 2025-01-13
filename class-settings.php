@@ -45,6 +45,46 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         abstract public function register();
 
         /**
+         * Escape admin fields html.
+         *
+         * @param string $html Output rendered field.
+         *
+         * @return string Escaped html.
+         */
+        public static function kses($html)
+        {
+            return wp_kses($html, [
+                'table' => [
+                    'id' => [],
+                ],
+                'th' => [],
+                'tr' => [],
+                'td' => [],
+                'input' => [
+                    'value' => [],
+                    'name' => [],
+                    'id' => [],
+                    'checked' => [],
+                ],
+                'select' => [
+                    'name' => [],
+                    'id' => [],
+                    'multiple' => [],
+                ],
+                'option' => [
+                    'value' => [],
+                ],
+                'div' => [
+                    'id' => [],
+                ],
+                'button' => [
+                    'class' => [],
+                    'data-action' => [],
+                ]
+            ]);
+        }
+
+        /**
          * Get setting values.
          *
          * @param string $group Setting's group name.
@@ -250,7 +290,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                 $field,
                 $field_label,
                 function () use ($setting, $field) {
-                    echo $this->field_render($setting, $field);
+                    echo self::kses($this->field_render($setting, $field));
                 },
                 $setting_name,
                 $setting_name . '_section',
@@ -335,12 +375,14 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                 if ($is_list) {
                     $key = (int) $key;
                 }
-                $value = $value[$key];
+
                 if ($schema['type'] === 'object') {
                     $schema = $schema['properties'][$key];
                 } else {
                     $schema = $schema['items'];
                 }
+
+                $value = $value[$key];
                 $is_list = is_list($value);
             }
             $is_bool = is_bool($value);
@@ -352,16 +394,19 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                 );
             } elseif (isset($schema['enum'])) {
                 $options = implode('', array_map(function ($opt) use ($value) {
+                    $is_selected = is_array($value) ? in_array($opt, $value) : $value === $opt;
                     return sprintf(
                         '<option value="%s" %s>%s</option>',
                         esc_attr($opt),
-                        $value === $opt ? 'selected' : '',
+                        $is_selected ? 'selected' : '',
                         esc_html($opt),
                     );
                 }, (array) $schema['enum']));
+                $multi = is_array($value) ? 'multiple' : '';
                 return sprintf(
-                    '<select name="%s">%s</select>',
+                    '<select name="%s" %s>%s</select>',
                     esc_attr($setting_name . "[{$field}]"),
+                    esc_attr($multi),
                     $options,
                 );
             } else {
@@ -459,7 +504,11 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         {
             $setting_name = $setting->full_name();
             add_action('admin_print_styles', function () use ($setting_name, $field) {
-                echo "<style>#{$setting_name}__{$field} td td,#{$setting_name}__{$field} td th{padding:0}#{$setting_name}__{$field} table table{margin-bottom:1rem}</style>";
+                printf(
+                    '<style>#%1$s__%2$s td td,#%1$s__%2$s td th{padding:0}#%1$s__%2$s table table{margin-bottom:1rem}</style>',
+                    esc_attr($setting_name),
+                    esc_attr($field),
+                );
             });
         }
     }
