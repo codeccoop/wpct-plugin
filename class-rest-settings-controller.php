@@ -174,7 +174,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         private function set_settings($request)
         {
             try {
-                $data = $request->json_params();
+                $data = $request->get_json_params();
 
                 $settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
                 foreach ($settings as $setting) {
