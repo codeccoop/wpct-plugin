@@ -20,21 +20,21 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          *
          * @var string
          */
-        private static $name;
+        private $name;
 
         /**
          * Handle menu slug.
          *
          * @var string
          */
-        private static $slug;
+        private $slug;
 
         /**
          * Handle plugin settings instance.
          *
-         * @var Settings
+         * @var Settings_Store
          */
-        private static $settings;
+        private $settings;
 
         /**
          * Class constructor. Set attributes and hooks to wp admin hooks.
@@ -46,13 +46,13 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
         protected function construct(...$args)
         {
             [$name, $slug, $settings] = $args;
-            static::$name = $name;
-            static::$slug = $slug;
-            static::$settings = $settings;
+            $this->name = $name;
+            $this->slug = $slug;
+            $this->settings = $settings;
 
             add_action('admin_menu', function () {
                 static::add_menu();
-                do_action('wpct_register_menu', static::$name, $this);
+                do_action('wpct_register_menu', $this->name, $this);
             });
         }
 
@@ -62,10 +62,10 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
         private static function add_menu()
         {
             add_options_page(
-                static::$name,
-                static::$name,
+                static::name(),
+                static::name(),
                 'manage_options',
-                static::$slug,
+                static::slug(),
                 static function () {
                     static::render_page();
                 }
@@ -80,7 +80,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          */
         protected static function render_page($echo = true)
         {
-            $page_settings = static::$settings->settings();
+            $page_settings = static::settings()->settings();
             $tabs = array_reduce($page_settings, static function ($carry, $setting) {
                 $setting_name = $setting->full_name();
                 /* translators: %s: Setting name */
@@ -96,7 +96,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
 					<nav class="nav-tab-wrapper">
 					<?php foreach ($tabs as $tab => $name) {
 					    $current = $tab === $current_tab ? 'nav-tab-active' : '';
-					    $url = add_query_arg(['page' => static::$slug, 'tab' => $tab], '');
+					    $url = add_query_arg(['page' => static::slug(), 'tab' => $tab], '');
 					    printf(
 					        '<a class="nav-tab %s" href="%s">%s</a>',
 					        esc_attr($current),
@@ -127,7 +127,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          */
         final public static function name()
         {
-            return static::$name;
+            return static::get_instance()->name;
         }
 
         /**
@@ -137,17 +137,17 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          */
         final public static function slug()
         {
-            return static::$slug;
+            return static::get_instance()->slug;
         }
 
         /**
          * Menu settings getter.
          *
-         * @return object $settings Plugin settings instance.
+         * @return Settings_Store $settings Plugin settings instance.
          */
         final public static function settings()
         {
-            return static::$settings;
+            return static::get_instance()->settings;
         }
     }
 }

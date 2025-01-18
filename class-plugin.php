@@ -43,7 +43,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
         /**
          * Handles plugin's settings store instance.
          *
-         * @var SettingsStore
+         * @var Settings_Store
          */
         private $settings_store;
 
