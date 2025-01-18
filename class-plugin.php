@@ -80,7 +80,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         final public static function setup(...$args)
         {
-            return self::get_instance(...$args);
+            return static::get_instance(...$args);
         }
 
         /**
@@ -111,7 +111,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
 
             add_action('init', function () {
                 static::init();
-                self::load_textdomain();
+                static::load_textdomain();
             });
 
             add_filter(
@@ -128,7 +128,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                         return $links;
                     }
 
-                    $url = admin_url('options-general.php?page=' . self::slug());
+                    $url = admin_url('options-general.php?page=' . static::slug());
                     $label = __('Settings', 'wpct-plugin-abstracts');
                     $link = sprintf('<a href="%s">%s</a>', esc_url($url), esc_html($label));
                     array_unshift($links, $link);
@@ -138,11 +138,11 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                 2
             );
 
-            register_activation_hook(self::index(), function () {
+            register_activation_hook(static::index(), function () {
                 static::activate();
             });
 
-            register_deactivation_hook(self::index(), function () {
+            register_deactivation_hook(static::index(), function () {
                 static::deactivate();
             });
         }
@@ -154,7 +154,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         final public static function name()
         {
-            return self::data()['Name'];
+            return static::data()['Name'];
         }
 
         /**
@@ -164,7 +164,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         final public static function slug()
         {
-            return pathinfo(self::index())['filename'];
+            return pathinfo(static::index())['filename'];
         }
 
         /**
@@ -197,7 +197,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         final public static function textdomain()
         {
-            return self::data()['TextDomain'];
+            return static::data()['TextDomain'];
         }
 
         /**
@@ -207,7 +207,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         final public static function version()
         {
-            return self::data()['Version'];
+            return static::data()['Version'];
         }
 
         /**
@@ -217,7 +217,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         final public static function dependencies()
         {
-            $dependencies = self::data()['RequiresPlugins'];
+            $dependencies = static::data()['RequiresPlugins'];
             if (empty($dependencies)) {
                 return [];
             }
@@ -235,14 +235,9 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         private static function data()
         {
-            if (!empty(static::$data)) {
-                return static::$data;
-            }
-
             include_once(ABSPATH . 'wp-admin/includes/plugin.php');
-            $plugin_dir = self::path() . basename(self::index());
-            static::$data = get_plugin_data($plugin_dir, false, false);
-            return static::$data;
+            $plugin_dir = static::path() . basename(static::index());
+            return get_plugin_data($plugin_dir, false, false);
         }
 
         /**
@@ -252,7 +247,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         final public static function is_active()
         {
-            return self::is_plugin_active(self::index());
+            return static::is_plugin_active(static::index());
         }
 
         /**
@@ -260,13 +255,13 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         private static function load_textdomain()
         {
-            $data = self::data();
+            $data = static::data();
             $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
 
             load_plugin_textdomain(
-                self::textdomain(),
+                static::textdomain(),
                 false,
-                dirname(self::index()) . $domain_path,
+                dirname(static::index()) . $domain_path,
             );
         }
 

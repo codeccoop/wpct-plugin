@@ -51,7 +51,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
             static::$settings = $settings;
 
             add_action('admin_menu', function () {
-                self::add_menu();
+                static::add_menu();
                 do_action('wpct_register_menu', static::$name, $this);
             });
         }
