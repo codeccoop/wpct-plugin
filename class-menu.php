@@ -18,55 +18,56 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
         /**
          * Handle menu name.
          *
-         * @var string $name Menu name.
+         * @var string
          */
-        private $name;
+        private static $name;
 
         /**
          * Handle menu slug.
          *
-         * @var string $settings_class Settings class name.
+         * @var string
          */
-        private $slug;
+        private static $slug;
 
         /**
          * Handle plugin settings instance.
          *
-         * @var object $settings Settings instance.
+         * @var Settings
          */
-        private $settings;
+        private static $settings;
 
         /**
          * Class constructor. Set attributes and hooks to wp admin hooks.
          *
-         * @param string $name Plugin name.
-         * @param string $slug Plugin slug.
+         * @param string $name Plugin's name.
+         * @param string $slug Plugin's slug.
+         * @param array $settings Plugin's setting instances.
          */
         protected function construct(...$args)
         {
             [$name, $slug, $settings] = $args;
-            $this->name = $name;
-            $this->slug = $slug;
-            $this->settings = $settings;
+            static::$name = $name;
+            static::$slug = $slug;
+            static::$settings = $settings;
 
             add_action('admin_menu', function () {
-                $this->add_menu();
-                do_action('wpct_register_menu', $this->name, $this);
+                self::add_menu();
+                do_action('wpct_register_menu', static::$name, $this);
             });
         }
 
         /**
          * Register plugin options page.
          */
-        private function add_menu()
+        private static function add_menu()
         {
             add_options_page(
-                $this->name,
-                $this->name,
+                static::$name,
+                static::$name,
                 'manage_options',
-                $this->slug,
-                function () {
-                    $this->render_page();
+                static::$slug,
+                static function () {
+                    static::render_page();
                 }
             );
         }
@@ -77,10 +78,10 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          * @param boolean $echo Should put render to the output buffer.
          * @return string|null $render Page content.
          */
-        protected function render_page($echo = true)
+        protected static function render_page($echo = true)
         {
-            $page_settings = $this->settings->settings();
-            $tabs = array_reduce($page_settings, function ($carry, $setting) {
+            $page_settings = static::$settings->settings();
+            $tabs = array_reduce($page_settings, static function ($carry, $setting) {
                 $setting_name = $setting->full_name();
                 /* translators: %s: Setting name */
                 $carry[$setting_name] = sprintf(esc_html__('%s--title', 'wpct-plugin-abstracts'), $setting_name);
@@ -95,7 +96,7 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
 					<nav class="nav-tab-wrapper">
 					<?php foreach ($tabs as $tab => $name) {
 					    $current = $tab === $current_tab ? 'nav-tab-active' : '';
-					    $url = add_query_arg(['page' => $this->slug, 'tab' => $tab], '');
+					    $url = add_query_arg(['page' => static::$slug, 'tab' => $tab], '');
 					    printf(
 					        '<a class="nav-tab %s" href="%s">%s</a>',
 					        esc_attr($current),
@@ -124,9 +125,9 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          *
          * @return string $name Menu name.
          */
-        public function name()
+        final public static function name()
         {
-            return $this->name;
+            return static::$name;
         }
 
         /**
@@ -134,9 +135,9 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          *
          * @return string $slug Menu slug.
          */
-        public function slug()
+        final public static function slug()
         {
-            return $this->slug;
+            return static::$slug;
         }
 
         /**
@@ -144,9 +145,9 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          *
          * @return object $settings Plugin settings instance.
          */
-        public function settings()
+        final public static function settings()
         {
-            return $this->settings;
+            return static::$settings;
         }
     }
 }

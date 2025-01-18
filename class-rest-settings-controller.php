@@ -20,32 +20,16 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
     class REST_Settings_Controller extends Singleton
     {
         /**
-         * Handle REST API controller namespace.
-         *
-         * @var string
-         */
-        protected static $namespace = 'wpct';
-
-        /**
-         * Handle REST API controller namespace version.
-         *
-         * @var int
-         */
-        protected static $version = 1;
-
-        /**
         * Handle plugin settings group name.
         *
         * @var string
         */
-        protected $group;
+        private $group;
 
         /**
-         * Handle plugin settings names.
-         *
-         * @var array<string>
+         * Handles plugin settings instances.
          */
-        protected static $settings = ['general'];
+        private $settings = [];
 
         /**
          * Setup a new rest settings controller.
@@ -54,9 +38,9 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          *
          * @return object Instance of REST_Controller.
          */
-        public static function setup($group)
+        final public static function setup($group)
         {
-            return static::class::get_instance($group);
+            return self::get_instance($group);
         }
 
 
@@ -67,7 +51,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          * @param string $message
          * @param int $status
          */
-        private static function error($code, $message, $status)
+        final protected static function error($code, $message, $status)
         {
             return new WP_Error($code, $message, [
                 'status' => $status,
@@ -84,28 +68,54 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             [$group] = $args;
             $this->group = $group;
 
-            add_action('rest_api_init', function () {
-                $this->init();
+            add_action('rest_api_init', static function () {
+                static::init();
             });
+
+            add_action('wpct_register_settings', function ($settings, $group) {
+                if ($group === $this->group) {
+                    $this->settings = $settings;
+                }
+            }, 10, 2);
+        }
+
+        final protected static function group()
+        {
+            return self::get_instance()->group;
+        }
+
+        final protected static function namespace()
+        {
+            return apply_filters('wpct_rest_namespace', self::group());
+        }
+
+        final protected static function version()
+        {
+            return (int) apply_filters('wpct_rest_version', 1, self::group());
+        }
+
+        final protected static function settings()
+        {
+            return self::get_instance()->settings;
         }
 
         /**
          * REST_Settings_Controller initializer.
          */
-        private function init()
+        protected static function init()
         {
             // register settings endpoint
-            $namespace = static::$namespace;
-            $version = static::$version;
+            $namespace = self::namespace();
+            $version = self::version();
 
             register_rest_route(
                 "{$namespace}/v{$version}",
-                "/{$this->group}/settings/",
+                "/settings/",
                 [
                     [
                         'methods' => WP_REST_Server::READABLE,
-                        'callback' => function () {
-                            return $this->get_settings();
+                        'callback' => static function () {
+                            return self::get_settings();
                         },
                         'permission_callback' => static function () {
                             return self::permission_callback();
@@ -113,36 +123,41 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                     ],
                     [
                         'methods' => WP_REST_Server::CREATABLE,
-                        'callback' => function ($request) {
-                            return $this->set_settings($request);
+                        'callback' => static function ($request) {
+                            return self::set_settings($request);
                         },
                         'permission_callback' => static function () {
                             return self::permission_callback();
                         },
                     ],
-                    'schema' => function () {
-                        return $this->schema();
+                    'schema' => static function () {
+                        return self::schema();
                     },
                     'allow_batch' => ['v1' => false],
                 ],
             );
         }
 
-        private function schema()
+        /**
+         * Setting rest schema getter.
+         *
+         * @return array
+         */
+        private static function schema()
         {
-            $settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
-            $schema = array_reduce($settings, function ($schema, $setting_name) {
-                $setting_schema = Settings::get_setting($this->group, $setting_name)->schema();
+            $settings = self::settings();
+
+            return array_reduce($settings, static function ($schema, $setting) {
+                $setting_schema = $setting->schema();
                 unset($setting_schema['additionalProperties']);
-                $schema['properties'][$setting_name] = $setting_schema;
+                $schema['properties'][$setting->full_name()] = $setting_schema;
                 return $schema;
             }, [
                 '$schema' => 'http://json-schema.org/draft-04/schema#',
-                'title' => $this->group,
+                'title' => self::group(),
                 'type' => 'object',
                 'properties' => [],
             ]);
-            return $schema;
         }
 
         /**
@@ -150,15 +165,12 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          *
          * @return array<string, array> $settings Associative array with settings data.
          */
-        private function get_settings()
+        private static function get_settings()
         {
             $data = [];
-            $settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
+            $settings = self::settings();
             foreach ($settings as $setting) {
-                $data[$setting] = Settings::get_setting(
-                    $this->group,
-                    $setting
-                )->data();
+                $data[$setting->name()] = $setting->data();
             }
 
             return $data;
@@ -171,28 +183,27 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          *
          * @return array New settings state.
          */
-        private function set_settings($request)
+        private static function set_settings($request)
         {
             try {
                 $data = $request->get_json_params();
 
-                $settings = apply_filters('wpct_rest_settings', static::$settings, $this->group);
+                $settings = self::settings();
                 foreach ($settings as $setting) {
-                    if (!isset($data[$setting])) {
+                    if (!isset($data[$setting->name()])) {
                         continue;
                     }
 
-                    $from = Settings::get_setting($this->group, $setting)->data();
-                    $to = $data[$setting];
+                    $from = $setting->data();
+                    $to = $data[$setting->name()];
                     foreach (array_keys($from) as $key) {
                         $to[$key] = isset($to[$key]) ? $to[$key] : $from[$key];
                     }
-                    $option = $this->group . '_' . $setting;
-                    update_option($option, $to);
+                    update_option($setting->full_name(), $to);
                 }
                 return ['success' => true];
             } catch (Error $e) {
-                return self::error($e->getCode(), $e->getMessage(), ['data' => $data]);
+                return self::error($e->getCode(), $e->getMessage(), ['status' => $data]);
             }
         }
 
@@ -201,11 +212,11 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          *
          * @return boolean
          */
-        protected static function permission_callback()
+        final protected static function permission_callback()
         {
             return current_user_can('manage_options')
                 ? true
-                : static::error(
+                : self::error(
                     'rest_unauthorized',
                     'You can\'t manage wp options',
                     403,

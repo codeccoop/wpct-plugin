@@ -24,12 +24,12 @@ $control_id = $setting->full_name() . '__' . $field_name . '--controls';
 			<?php foreach (array_keys($field_value) as $key) : ?>
 				<tr>
 					<th><?php echo esc_html($key) ?></th>
-					<td><?php echo self::kses($this->input_render($setting, implode('][', [$field_name, $index, $key]), $field_value[$key])); ?></td>
+					<td><?php echo self::kses(self::input_render($setting, implode('][', [$field_name, $index, $key]), $field_value[$key])); ?></td>
 				</tr>
 			<?php endforeach; ?>
 			</table>`;
 		<?php else : ?>
-			return `<?php echo self::kses($this->input_render($setting, implode('][', [$field_name, $index]), $field_value)); ?>`;
+			return `<?php echo self::kses(self::input_render($setting, implode('][', [$field_name, $index]), $field_value)); ?>`;
 		<?php endif; ?>
 	}
 

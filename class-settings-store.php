@@ -16,33 +16,38 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
     /**
      * Plugin settings abstract class.
      */
-    abstract class Settings extends Singleton
+    abstract class SettingsStore extends Singleton
     {
-        /**
-         * Handle settings group name.
-         *
-         * @var string $group_name Settings group name.
-         */
-        private $group;
-
         /**
          * Handle plugin settings rest controller class name.
          *
-         * @var string $rest_controller_class Settings REST Controller class name.
+         * @var string
          */
         protected static $rest_controller_class = '\WPCT_ABSTRACT\REST_Settings_Controller';
 
         /**
-         * Handle settings cached values.
+         * Handle settings group name.
          *
-         * @var array $cache Settings cached values.
+         * @var string
          */
-        private static $cache = [];
+        private $group;
+
+        /**
+         * Handle settings instanes store.
+         *
+         * @var array
+         */
+        private $store = [];
+
+        private static function store($setting_name, $setting)
+        {
+            static::get_instance()->store[$setting_name] = $setting;
+        }
 
         /**
          * Register settings method.
          */
-        abstract public function register();
+        abstract public static function config();
 
         /**
          * Escape admin fields html.
@@ -85,34 +90,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         }
 
         /**
-         * Get setting values.
-         *
-         * @param string $group Setting's group name.
-         * @param string $name Setting's name.
-         *
-         * @return Setting $value Setting instace.
-         */
-        public static function get_setting($group, $name)
-        {
-            $setting_name = $group . '_' . $name;
-            if (!isset(self::$cache[$setting_name])) {
-                self::$cache[$setting_name] = new Setting($group, $name, [], []);
-            }
-            return self::$cache[$setting_name];
-        }
-
-        /**
          * Private setting sanitization method.
          *
-         * @param string $setting_name Setting name.
-         * @param array $schema Setting schema.
+         * @param string $name Setting name.
          * @param array $data Setting data.
          *
          * @return array Sanitized data.
          */
-        private static function sanitize_setting($group, $name, $data)
+        private static function sanitize_setting($name, $data)
         {
-            $setting = self::get_setting($group, $name);
+            $setting = static::setting($name);
             $schema = $setting->schema();
 
             $data = apply_filters('wpct_validate_setting', $data, $setting);
@@ -122,7 +109,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                     continue;
                 }
 
-                $sanitized[$field] = self::_sanitize_value($schema['properties'][$field], $value);
+                $sanitized[$field] = self::sanitize_value($schema['properties'][$field], $value);
             }
 
             return $sanitized;
@@ -136,7 +123,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          *
          * @return mixed Sanitized field value.
          */
-        private static function _sanitize_value($schema, $value)
+        private static function sanitize_value($schema, $value)
         {
             switch ($schema['type']) {
                 case 'string':
@@ -155,13 +142,13 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                     return (bool) $value;
                 case 'array':
                     return array_map(static function ($item) use ($schema) {
-                        return self::_sanitize_value($schema['items'], $item);
+                        return self::sanitize_value($schema['items'], $item);
                     }, array_values($value));
                     break;
                 case 'object':
                     return array_reduce(array_keys($value), static function ($sanitized, $key) use ($schema, $value) {
                         if (isset($schema['properties'][$key])) {
-                            $sanitized[$key] = self::_sanitize_value($schema['properties'][$key], $value[$key]);
+                            $sanitized[$key] = self::sanitize_value($schema['properties'][$key], $value[$key]);
                         }
                         return $sanitized;
                     }, []);
@@ -177,11 +164,12 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
         {
             [$group] = $args;
             $this->group = $group;
+
             static::$rest_controller_class::setup($group);
 
-            add_action('init', function () {
-                $this->register();
-                do_action('wpct_register_settings', $this->group, $this);
+            add_action('init', static function () use ($group) {
+                $settings = static::register_settings();
+                do_action('wpct_register_settings', $settings, $group);
             });
         }
 
@@ -190,9 +178,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          *
          * @return string $group_name Settings group name.
          */
-        public function group()
+        final public static function group()
         {
-            return $this->group;
+            return static::get_instance()->group;
         }
 
         /**
@@ -200,77 +188,95 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          *
          * @return array Group settings.
          */
-        public function settings()
+        final public static function settings()
         {
-            $settings = [];
-            foreach (array_keys(self::$cache) as $full_name) {
-                if (strstr($full_name, $this->group)) {
-                    $settings[] = self::$cache[$full_name];
-                }
-            }
-
-            return $settings;
+            return static::get_instance()->store;
         }
 
-        public function setting($name)
+        final public static function setting($name)
         {
-            return self::get_setting($this->group, $name);
+			$store = static::settings();
+			if (empty($store)) {
+				return;
+			}
+
+            return $store[$name] ?? null;
         }
 
         /**
          * Registers a setting and its fields.
          *
-         * @param string $name Setting name.
-         * @param array $schema Setting schema.
-         * @param array $default Setting's default values.
+         * @return array List with setting instances.
          */
-        public function register_setting($name, $schema, $default = [])
+        private static function register_settings()
         {
-            $setting = new Setting($this->group(), $name, $default, ['type' => 'object', 'properties' => $schema, 'additionalProperties' => false]);
-            $setting_name = $setting->full_name();
-            $schema = $setting->schema();
+            $config = apply_filters('wpct_settings_config', static::config(), static::group());
 
-            // Register setting
-            register_setting(
-                $setting_name,
-                $setting_name,
-                [
-                    'type' => 'object',
-                    'show_in_rest' => [
-                        'name' => $setting_name,
-                        'schema' => $schema,
+            $settings = [];
+            foreach ($config as $setting_config) {
+                $group = static::group();
+                [$name, $schema, $default] = $setting_config;
+
+                $setting = new Setting(
+                    $group,
+                    $name,
+                    $default,
+                    [
+                        'type' => 'object',
+                        'properties' => $schema,
+                        'additionalProperties' => false
                     ],
-                    'sanitize_callback' => function ($value) use ($name) {
-                        return self::sanitize_setting($this->group(), $name, $value);
-                    },
-                    'default' => $default,
-                ],
-            );
-
-            self::$cache[$setting_name] = $setting;
-
-            // Add settings section on admin init
-            add_action('admin_init', function () use ($setting, $default) {
-                $setting_name = $setting->full_name();
-
-                $section_name = $setting_name . '_section';
-                /* translators: %s: Setting name */
-                $section_label = sprintf(__('%s--title', 'wpct-plugin-abstracts'), $setting_name);
-                add_settings_section(
-                    $section_name,
-                    $section_label,
-                    function () use ($setting_name) {
-                        /* translators: %s: Setting name */
-                        $title = sprintf(__('%s--description', 'wpct-plugin-abstracts'), $setting_name);
-                        printf('<p>%s</p>', esc_html($title));
-                    },
-                    $setting_name,
                 );
 
-                foreach (array_keys($default) as $field) {
-                    $this->add_setting_field($setting, $field);
-                }
-            });
+                $setting_name = $setting->full_name();
+                $schema = $setting->schema();
+
+                // Register setting
+                register_setting(
+                    $setting_name,
+                    $setting_name,
+                    [
+                        'type' => 'object',
+                        'show_in_rest' => [
+                            'name' => $setting_name,
+                            'schema' => $schema,
+                        ],
+                        'sanitize_callback' => function ($value) use ($name) {
+                            return static::sanitize_setting($name, $value);
+                        },
+                        'default' => $default,
+                    ],
+                );
+
+                static::store($name, $setting);
+
+                // Add settings section on admin init
+                add_action('admin_init', function () use ($setting, $default) {
+                    $setting_name = $setting->full_name();
+
+                    $section_name = $setting_name . '_section';
+                    /* translators: %s: Setting name */
+                    $section_label = sprintf(__('%s--title', 'wpct-plugin-abstracts'), $setting_name);
+                    add_settings_section(
+                        $section_name,
+                        $section_label,
+                        function () use ($setting_name) {
+                            /* translators: %s: Setting name */
+                            $title = sprintf(__('%s--description', 'wpct-plugin-abstracts'), $setting_name);
+                            printf('<p>%s</p>', esc_html($title));
+                        },
+                        $setting_name,
+                    );
+
+                    foreach (array_keys($default) as $field) {
+                        static::add_setting_field($setting, $field);
+                    }
+                });
+
+                $settings[$setting->name()] = $setting;
+            }
+
+            return $settings;
         }
 
         /**
@@ -279,7 +285,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          * @param Setting $setting Setting name.
          * @param string $field Field name.
          */
-        private function add_setting_field($setting, $field)
+        private static function add_setting_field($setting, $field)
         {
             $setting_name = $setting->full_name();
             $field_id = $setting_name . '__' . $field;
@@ -290,7 +296,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                 $field,
                 $field_label,
                 function () use ($setting, $field) {
-                    echo self::kses($this->field_render($setting, $field));
+                    echo static::kses(static::field_render($setting, $field));
                 },
                 $setting_name,
                 $setting_name . '_section',
@@ -309,7 +315,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          *
          * @return string $html Input HTML.
          */
-        protected function field_render()
+        protected static function field_render()
         {
             $args = func_get_args();
             $setting = $args[0];
@@ -320,7 +326,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                 $value = new Undefined();
             }
 
-            return $this->_field_render($setting, $field, $value);
+            return static::_field_render($setting, $field, $value);
         }
 
         /**
@@ -332,7 +338,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          *
          * @return string $html Input HTML.
          */
-        private function _field_render($setting, $field, $value)
+        private static function _field_render($setting, $field, $value)
         {
             $is_root = false;
             if ($value instanceof Undefined) {
@@ -341,12 +347,12 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
             }
 
             if (!is_array($value)) {
-                return $this->input_render($setting, $field, $value);
+                return static::input_render($setting, $field, $value);
             } else {
-                $fieldset = $this->fieldset_render($setting, $field, $value);
+                $fieldset = static::fieldset_render($setting, $field, $value);
                 if ($is_root && is_list($value)) {
-                    $this->control_style($setting, $field);
-                    $fieldset .= $this->control_render($setting, $field);
+                    static::control_style($setting, $field);
+                    $fieldset .= static::control_render($setting, $field);
                 }
 
                 return $fieldset;
@@ -362,7 +368,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          *
          * @return string $html Input HTML.
          */
-        protected function input_render($setting, $field, $value)
+        protected static function input_render($setting, $field, $value)
         {
             $setting_name = $setting->full_name();
             $keys = explode('][', $field);
@@ -427,7 +433,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          *
          * @return string $html Fieldset HTML.
          */
-        private function fieldset_render($setting, $field, $data)
+        private static function fieldset_render($setting, $field, $data)
         {
             $setting_name = $setting->full_name();
             $table_id = $setting_name . '__' . str_replace('][', '_', $field);
@@ -439,7 +445,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                     $fieldset .= '<th>' . esc_html($key) . '</th>';
                 }
                 $_field = $field . '][' . $key;
-                $fieldset .= "<td>{$this->field_render($setting, $_field, $data[$key])}</td>";
+                $fieldset .= sprintf("<td>%s</td>", self::field_render($setting, $_field, $data[$key]));
                 $fieldset .= '</tr>';
             }
             $fieldset .= '</table>';
@@ -455,7 +461,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          *
          * @return string $html Control HTML.
          */
-        private function control_render($setting, $field)
+        private static function control_render($setting, $field)
         {
             $value = $setting->data()[$field][0];
 
@@ -464,7 +470,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
                 $field,
                 $value
             ) {
-                $this->control_script($setting, $field, $value);
+                static::control_script($setting, $field, $value);
             });
 
             ob_start();
@@ -487,7 +493,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          *
          * @return string Fieldset control rendered script.
          */
-        private function control_script($setting, $field_name, $field_value)
+        private static function control_script($setting, $field_name, $field_value)
         {
             include 'fieldset-control-js.php';
         }
@@ -500,7 +506,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
          *
          * @return string $tag Style HTML tag with control styles.
          */
-        private function control_style($setting, $field)
+        private static function control_style($setting, $field)
         {
             $setting_name = $setting->full_name();
             add_action('admin_print_styles', function () use ($setting_name, $field) {

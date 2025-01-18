@@ -2,7 +2,7 @@
 
 namespace WPCT_ABSTRACT;
 
-use Exception;
+use Error;
 
 if (!defined('ABSPATH')) {
     exit();
@@ -31,16 +31,16 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
         /**
          * Prevent class clonning.
          */
-        protected function __clone()
+        final public function __clone()
         {
         }
 
         /**
          * Prevent class serialization.
          */
-        public function __wakeup()
+        final public function __wakeup()
         {
-            throw new Exception('Cannot unserialize a singleton.');
+            throw new Error('Cannot unserialize a singleton.');
         }
 
         /**
@@ -53,7 +53,7 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
          *
          * @return object $instance Class instance.
          */
-        public static function get_instance()
+        final public static function get_instance()
         {
             $args = func_get_args();
             $cls = static::class;
@@ -61,9 +61,9 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
                 // Pass $singleton reference to prevent singleton classes constructor overwrites
                 self::$_instances[$cls] = new static($singleton);
                 if (!$singleton) {
-                    throw new Exception('Cannot create uncontrolled instances from a singleton.');
+                    throw new Error('Cannot create uncontrolled instances from a singleton.');
                 }
-                (self::$_instances[$cls])->construct(...$args);
+                self::$_instances[$cls]->construct(...$args);
             }
 
             return self::$_instances[$cls];

@@ -62,9 +62,9 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
             $this->default = apply_filters('wpct_setting_default', $data, $this->full_name());
             $this->schema = $schema;
 
-            add_action('added_option', function ($option, $value) {
+            add_action('added_option', function ($option, $data) {
                 if ($option === $this->full_name()) {
-                    $this->data = $value;
+                    $this->data = $data;
                 }
             }, 5, 2);
 
@@ -91,7 +91,7 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
         public function __get($field)
         {
             $data = $this->data();
-            return isset($data[$field]) ? $data[$field] : null;
+            return $data[$field] ?? null;
         }
 
         public function __set($field, $value)
@@ -220,7 +220,7 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
 				$target = $target['properties'];
 			}
 
-            return isset($target[$field]) ? $target[$field] : null;
+            return $target[$field] ?? null;
         }
     }
 }
