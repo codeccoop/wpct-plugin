@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\Settings')) {
+if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
     require_once 'class-singleton.php';
     require_once 'class-setting.php';
@@ -16,7 +16,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings')) {
     /**
      * Plugin settings abstract class.
      */
-    abstract class SettingsStore extends Singleton
+    abstract class Settings_Store extends Singleton
     {
         /**
          * Handle plugin settings rest controller class name.
