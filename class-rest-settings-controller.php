@@ -49,13 +49,13 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          *
          * @param string $code
          * @param string $message
-         * @param int $status
+         * @param mixed $data
+         *
+         * @return WP_Error
          */
-        final protected static function error($code, $message, $status)
+        final protected static function error($code, $message, $data)
         {
-            return new WP_Error($code, $message, [
-                'status' => $status,
-            ]);
+            return new WP_Error((string) $code, $message, $data);
         }
 
         /**
@@ -203,7 +203,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                 }
                 return ['success' => true];
             } catch (Error $e) {
-                return self::error($e->getCode(), $e->getMessage(), ['status' => $data]);
+                return self::error('internal_server_error', $e->getMessage(), $data);
             }
         }
 

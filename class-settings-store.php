@@ -50,6 +50,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         abstract public static function config();
 
         /**
+         * Validates setting data before database inserts.
+         *
+         * @param array $data Setting data.
+         * @param Setting $setting Setting instance.
+         *
+         * @return array $value Validated setting data.
+         */
+        abstract protected static function validate_setting($data, $setting);
+
+        /**
          * Escape admin fields html.
          *
          * @param string $html Output rendered field.
@@ -92,17 +102,25 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         /**
          * Private setting sanitization method.
          *
-         * @param string $name Setting name.
          * @param array $data Setting data.
+         * @param string $name Setting name.
          *
          * @return array Sanitized data.
          */
-        private static function sanitize_setting($name, $data)
+        private static function sanitize_setting($data, $name)
         {
+            $instance = static::get_instance();
+            if ($instance->sanitizing === $name) {
+                return $data;
+            }
+
+            $instance->sanitizing = $name;
             $setting = static::setting($name);
             $schema = $setting->schema();
 
+            $data = static::validate_setting($data, $setting);
             $data = apply_filters('wpct_validate_setting', $data, $setting);
+
             $sanitized = [];
             foreach ($data as $field => $value) {
                 if (!isset($schema['properties'][$field])) {
@@ -111,6 +129,15 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
                 $sanitized[$field] = self::sanitize_value($schema['properties'][$field], $value);
             }
+
+            $full_name = $setting->full_name();
+            add_action("add_option_{$full_name}", static function () use ($instance) {
+                $instance->sanitizing = null;
+            }, 10, 0);
+
+            add_action("update_option_{$full_name}", static function () use ($instance) {
+                $instance->sanitizing = null;
+            }, 10, 0);
 
             return $sanitized;
         }
@@ -152,6 +179,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                         }
                         return $sanitized;
                     }, []);
+            }
+        }
+
+        private $sanitizing = null;
+
+        private static function reset_sanitizing()
+        {
+            $instance = static::get_instance();
+            if (!empty($instance->sanitizing)) {
+                $instance->sanitizing = null;
             }
         }
 
@@ -241,7 +278,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                             'schema' => $setting->schema(),
                         ],
                         'sanitize_callback' => function ($value) use ($name) {
-                            return static::sanitize_setting($name, $value);
+                            return static::sanitize_setting($value, $name);
                         },
                         'default' => $setting->default(),
                     ],
