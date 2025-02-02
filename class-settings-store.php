@@ -195,10 +195,10 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
         final public static function setting($name)
         {
-			$store = static::settings();
-			if (empty($store)) {
-				return;
-			}
+            $store = static::settings();
+            if (empty($store)) {
+                return;
+            }
 
             return $store[$name] ?? null;
         }
@@ -229,7 +229,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 );
 
                 $setting_name = $setting->full_name();
-                $schema = $setting->schema();
 
                 // Register setting
                 register_setting(
@@ -239,12 +238,12 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                         'type' => 'object',
                         'show_in_rest' => [
                             'name' => $setting_name,
-                            'schema' => $schema,
+                            'schema' => $setting->schema(),
                         ],
                         'sanitize_callback' => function ($value) use ($name) {
                             return static::sanitize_setting($name, $value);
                         },
-                        'default' => $default,
+                        'default' => $setting->default(),
                     ],
                 );
 

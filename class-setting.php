@@ -162,6 +162,18 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
         }
 
         /**
+         * Setting's default value getter.
+         *
+         * @param string $field Field name, optional.
+         *
+         * @return mixed
+         */
+        public function default($field = null)
+        {
+            return $this->proxy('default', $field);
+        }
+
+        /**
          * Registers setting data on the database.
          *
          * @param array $data Setting data.
@@ -216,9 +228,9 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
                 return $target;
             }
 
-			if ($name === 'schema') {
-				$target = $target['properties'];
-			}
+            if ($name === 'schema') {
+                $target = $target['properties'];
+            }
 
             return $target[$field] ?? null;
         }

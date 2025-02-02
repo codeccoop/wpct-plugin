@@ -169,8 +169,8 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         {
             $data = [];
             $settings = self::settings();
-            foreach ($settings as $setting) {
-                $data[$setting->name()] = $setting->data();
+            foreach ($settings as $name => $setting) {
+                $data[$name] = $setting->data();
             }
 
             return $data;
