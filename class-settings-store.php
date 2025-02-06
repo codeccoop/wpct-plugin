@@ -259,6 +259,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     $name,
                     $default,
                     [
+                        '$id' => $group . '_' . $name,
+                        '$schema' => 'http://json-schema.org/draft-04/schema#',
+                        'title' => "Setting {$name} of {$group}",
                         'type' => 'object',
                         'properties' => $schema,
                         'additionalProperties' => false
@@ -386,7 +389,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 return static::input_render($setting, $field, $value);
             } else {
                 $fieldset = static::fieldset_render($setting, $field, $value);
-                if ($is_root && is_list($value)) {
+                if ($is_root && wp_is_numeric_array($value)) {
                     static::control_style($setting, $field);
                     $fieldset .= static::control_render($setting, $field);
                 }
@@ -411,7 +414,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
             $schema = $setting->schema($keys[0]);
             $value = $setting->data($keys[0]);
 
-            $is_list = is_list($value);
+            $is_list = wp_is_numeric_array($value);
             for ($i = 1; $i < count($keys); $i++) {
                 $key = $keys[$i];
                 if ($is_list) {
@@ -425,7 +428,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 }
 
                 $value = $value[$key];
-                $is_list = is_list($value);
+                $is_list = wp_is_numeric_array($value);
             }
             $is_bool = is_bool($value);
 
@@ -474,7 +477,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
             $setting_name = $setting->full_name();
             $table_id = $setting_name . '__' . str_replace('][', '_', $field);
             $fieldset = '<table id="' . esc_attr($table_id) . '">';
-            $is_list = is_list($data);
+            $is_list = wp_is_numeric_array($data);
             foreach (array_keys($data) as $key) {
                 $fieldset .= '<tr>';
                 if (!$is_list) {
@@ -553,26 +556,5 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 );
             });
         }
-    }
-}
-
-if (!function_exists('\WPCT_ABSTRACT\is_list')) {
-
-    /**
-     * Check if array is positional.
-     *
-     * @param array $arr Target array.
-     *
-     * @return boolean
-     */
-    function is_list($arr)
-    {
-        if (!is_array($arr)) {
-            return false;
-        }
-        if (sizeof($arr) === 0) {
-            return true;
-        }
-        return array_keys($arr) === range(0, count($arr) - 1);
     }
 }
