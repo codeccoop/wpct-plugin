@@ -168,11 +168,18 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 case 'boolean':
                     return (bool) $value;
                 case 'array':
+                    if (!wp_is_numeric_array($value)) {
+                        return [];
+                    }
+
                     return array_map(static function ($item) use ($schema) {
                         return self::sanitize_value($schema['items'], $item);
                     }, array_values($value));
                     break;
                 case 'object':
+                    if (!is_array($value)) {
+                        return [];
+                    }
                     return array_reduce(array_keys($value), static function ($sanitized, $key) use ($schema, $value) {
                         if (isset($schema['properties'][$key])) {
                             $sanitized[$key] = self::sanitize_value($schema['properties'][$key], $value[$key]);
