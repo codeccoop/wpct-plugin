@@ -264,6 +264,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                         'title' => "Setting {$name} of {$group}",
                         'type' => 'object',
                         'properties' => $schema,
+                        'required' => array_keys($schema),
                         'additionalProperties' => false
                     ],
                 );

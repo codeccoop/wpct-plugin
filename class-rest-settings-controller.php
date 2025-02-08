@@ -129,6 +129,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                         'permission_callback' => static function () {
                             return self::permission_callback();
                         },
+                        'args' => self::schema()['properties'],
                     ],
                     'schema' => static function () {
                         return self::schema();
