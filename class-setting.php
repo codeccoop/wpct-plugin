@@ -75,6 +75,11 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
             add_action("deleted_option_{$full_name}", function () {
                 $this->data = null;
             }, 5, 0);
+
+            add_filter("option_{$full_name}", function ($data) {
+                $this->data = $data;
+                return $data;
+            }, 999);
         }
 
         /**
@@ -201,6 +206,11 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
         public function delete()
         {
             return delete_option($this->full_name());
+        }
+
+        public function refresh()
+        {
+            $this->data = null;
         }
 
         /**

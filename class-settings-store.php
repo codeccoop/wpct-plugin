@@ -139,6 +139,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 $instance->sanitizing = null;
             }, 10, 0);
 
+            $setting->refresh();
             return $sanitized;
         }
 
@@ -190,14 +191,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         }
 
         private $sanitizing = null;
-
-        private static function reset_sanitizing()
-        {
-            $instance = static::get_instance();
-            if (!empty($instance->sanitizing)) {
-                $instance->sanitizing = null;
-            }
-        }
 
         /**
          * Class constructor. Store the group name and hooks to pre_update_option.
