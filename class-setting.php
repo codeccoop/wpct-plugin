@@ -208,7 +208,7 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
             return delete_option($this->full_name());
         }
 
-        public function refresh()
+        public function flush()
         {
             $this->data = null;
         }

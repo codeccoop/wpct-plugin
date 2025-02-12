@@ -139,7 +139,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 $instance->sanitizing = null;
             }, 10, 0);
 
-            $setting->refresh();
+            $setting->flush();
             return $sanitized;
         }
 
