@@ -68,18 +68,13 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
                 $this->data = $data;
             }, 5, 2);
 
-            add_action("updated_option_{$full_name}", function ($from, $to) {
+            add_action("update_option_{$full_name}", function ($from, $to) {
                 $this->data = $to;
             }, 5, 2);
 
-            add_action("deleted_option_{$full_name}", function () {
+            add_action("delete_option_{$full_name}", function () {
                 $this->data = null;
             }, 5, 0);
-
-            add_filter("option_{$full_name}", function ($data) {
-                $this->data = $data;
-                return $data;
-            }, 999);
         }
 
         /**
