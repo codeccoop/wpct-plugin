@@ -159,11 +159,40 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     if (isset($schema['enum'])) {
                         $value = in_array($value, $schema['enum']) ? $value : null;
                     }
+
+                    if (is_string($value) && isset($schema['minLength'])) {
+                        $value = strlen($value) >= $schema['minLength'] ? $value : null;
+                    }
+
+                    if (is_string($value) && isset($schema['maxLength'])) {
+                        $value = strlen($value) <= $schema['maxLength'] ? $value : null;
+                    }
+
                     return $value;
                 case 'number':
-                    return (float) $value;
+                    $value = (float) $value;
+
+                    if (is_float($value) && isset($schema['minimum'])) {
+                        $value = $value >= $schema['minimum'] ? $value : null;
+                    }
+
+                    if (is_float($value) && isset($schema['maximum'])) {
+                        $value = $value <= $schema['maximum'] ? $value : null;
+                    }
+
+                    return $value;
                 case 'integer':
-                    return (int) $value;
+                    $value = (int) $value;
+
+                    if (is_int($value) && isset($schema['minimum'])) {
+                        $value = $value >= $schema['minimum'] ? $value : null;
+                    }
+
+                    if (is_int($value) && isset($schema['maximum'])) {
+                        $value = $value <= $schema['maximum'] ? $value : null;
+                    }
+
+                    return $value;
                 case 'null':
                     return null;
                 case 'boolean':
@@ -176,7 +205,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     return array_map(static function ($item) use ($schema) {
                         return self::sanitize_value($schema['items'], $item);
                     }, array_values($value));
-                    break;
                 case 'object':
                     if (!is_array($value)) {
                         return [];
