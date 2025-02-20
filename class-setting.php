@@ -233,7 +233,13 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
                 $target = $target['properties'];
             }
 
-            return $target[$field] ?? null;
+            $value = $target[$field] ?? null;
+
+            if (empty($vale) && $target === 'data') {
+                $value = $this->default[$field] ?? $value;
+            }
+
+            return $value;
         }
     }
 }
