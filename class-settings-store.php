@@ -324,14 +324,13 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
                     $section_name = $setting_name . '_section';
                     /* translators: %s: Setting name */
-                    $section_label = sprintf(__('%s--title', 'wpct-plugin-abstracts'), $setting_name);
+                    $section_label = esc_html(static::setting_title($setting_name));
                     add_settings_section(
                         $section_name,
                         $section_label,
                         function () use ($setting_name) {
-                            /* translators: %s: Setting name */
-                            $title = sprintf(__('%s--description', 'wpct-plugin-abstracts'), $setting_name);
-                            printf('<p>%s</p>', esc_html($title));
+                            $description = esc_html(static::setting_description($setting_name));
+                            printf('<p>%s</p>', esc_html($description));
                         },
                         $setting_name,
                     );
@@ -357,8 +356,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         {
             $setting_name = $setting->full_name();
             $field_id = $setting_name . '__' . $field;
-            /* translators: %s: Setting name concatenated with two underscores with the field name */
-            $field_label = sprintf(__('%s--label', 'wpct-plugin-abstracts'), $field_id);
+            $field_label = esc_html(static::field_label($field, $setting_name));
 
             add_settings_field(
                 $field,
@@ -577,13 +575,53 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         private static function control_style($setting, $field)
         {
             $setting_name = $setting->full_name();
-            add_action('admin_print_styles', function () use ($setting_name, $field) {
+            add_action('admin_print_footer_styles', function () use ($setting_name, $field) {
                 printf(
                     '<style>#%1$s__%2$s td td,#%1$s__%2$s td th{padding:0}#%1$s__%2$s table table{margin-bottom:1rem}</style>',
                     esc_attr($setting_name),
                     esc_attr($field),
                 );
             });
+        }
+
+        /**
+         * To be overwriten by the child class. Should return the localized setting title
+         * for the menu page.
+         *
+         * @param string $setting_name
+         *
+         * @return string
+         */
+        protected static function setting_title($setting_name)
+        {
+            return $setting_name;
+        }
+
+        /**
+         * To be overwriten by the child class. Should return the localized setting description
+         * for the menu page.
+         *
+         * @param string $setting_name
+         *
+         * @return string
+         */
+        protected static function setting_description($setting_name)
+        {
+            return 'Setting description';
+        }
+
+        /**
+         * To be overwriten by the child class. Should return the localized
+         * field label for the menu page.
+         *
+         * @param string $field_name Name of the field.
+         * @param string $setting_name Name of the parent setting.
+         *
+         * @return string
+         */
+        protected static function field_label($field_name, $setting_name)
+        {
+            return $field_name;
         }
     }
 }
