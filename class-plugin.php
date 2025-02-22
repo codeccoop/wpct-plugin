@@ -129,7 +129,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                     }
 
                     $url = admin_url('options-general.php?page=' . static::slug());
-                    $label = __('Settings', 'wpct-plugin-abstracts');
+                    $label = __('Settings');
                     $link = sprintf('<a href="%s">%s</a>', esc_url($url), esc_html($label));
                     array_unshift($links, $link);
                     return $links;
