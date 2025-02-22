@@ -77,6 +77,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 'tr' => [],
                 'td' => [],
                 'input' => [
+                    'type' => [],
                     'value' => [],
                     'name' => [],
                     'id' => [],
