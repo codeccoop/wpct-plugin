@@ -88,6 +88,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 ],
                 'option' => [
                     'value' => [],
+                    'selected' => [],
                 ],
                 'div' => [
                     'id' => [],
@@ -475,12 +476,13 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     );
                 }, (array) $schema['enum']));
                 $multi = is_array($value) ? 'multiple' : '';
-                return sprintf(
+                $select = sprintf(
                     '<select name="%s" %s>%s</select>',
                     esc_attr($setting_name . "[{$field}]"),
                     esc_attr($multi),
                     $options,
                 );
+                return $select;
             } else {
                 return sprintf(
                     '<input type="text" name="%s" value="%s" />',
