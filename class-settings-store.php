@@ -384,63 +384,42 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
             add_settings_field(
                 $field,
                 $field_label,
-                function () use ($setting, $field) {
-                    echo static::kses(static::field_render($setting, $field));
+                static function () use ($setting, $field) {
+                    $setting_name = $setting->full_name();
+                    $schema = $setting->schema($field);
+                    $value = $setting->data($field);
+
+                    echo static::kses(static::field_render($setting_name, $field, $schema, $value));
                 },
                 $setting_name,
                 $setting_name . '_section',
-                [
-                    'class' => $field_id,
-                ]
+                // [
+                //     'class' => $field_id,
+                // ]
             );
         }
 
         /**
          * Renders the field HTML.
          *
-         * @param Setting $setting Setting instance.
+         * @param string $setting Setting name.
          * @param string $field Field name.
-         * @param string|Undefined $value Field value.
+         * @param array $schema Field schema.
+         * @param mixed $value Field value.
          *
-         * @return string $html Input HTML.
+         * @return string
          */
-        protected static function field_render()
+        private static function field_render($setting, $field, $schema, $value)
         {
-            $args = func_get_args();
-            $setting = $args[0];
-            $field = $args[1];
-            if (count($args) >= 3) {
-                $value = $args[2];
+            if (!in_array($schema['type'], ['array', 'object'])) {
+                return static::input_render($setting, $field, $schema, $value);
+            } elseif ($schema['type'] === 'array' && $schema['items']['type'] === 'string' && isset($schema['items']['enum'])) {
+                return self::input_render($setting, $field, $schema, $value);
             } else {
-                $value = new Undefined();
-            }
-
-            return static::_field_render($setting, $field, $value);
-        }
-
-        /**
-         * Renders the field HTML.
-         *
-         * @param Setting $setting Setting instance.
-         * @param string $field Field name.
-         * @param string|Undefined $value Field value.
-         *
-         * @return string $html Input HTML.
-         */
-        private static function _field_render($setting, $field, $value)
-        {
-            if ($value instanceof Undefined) {
-                $value = $setting->data($field);
-            }
-
-            if (!is_array($value)) {
-                return static::input_render($setting, $field);
-            } else {
-                $fieldset = static::fieldset_render($setting, $field);
-                if (wp_is_numeric_array($value)) {
+                $fieldset = static::fieldset_render($setting, $field, $schema, $value);
+                if ($schema['type'] === 'array') {
                     $fieldset .= static::control_render($setting, $field);
                 }
-
                 return $fieldset;
             }
         }
@@ -448,21 +427,19 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         /**
          * Render input HTML.
          *
-         * @param Setting $setting Setting instance.
+         * @param string $setting Setting name.
          * @param string $field Field name.
+         * @param array $schema Field schema.
+         * @param mixed $value Field value.
          *
-         * @return string $html Input HTML.
+         * @return string
          */
-        protected static function input_render($setting, $field)
+        protected static function input_render($setting, $field, $schema, $value)
         {
-            $setting_name = $setting->full_name();
-            [$value, $schema] = self::traverse_data($setting, $field);
-
-            $is_bool = $schema['type'] === 'boolean';
-            if ($is_bool) {
+            if ($schema['type'] === 'boolean') {
                 return sprintf(
                     '<input type="checkbox" name="%s" ' . ($value ? 'checked' : '') . ' />',
-                    esc_attr($setting_name . "[{$field}]"),
+                    esc_attr($setting . "[{$field}]"),
                 );
             } elseif (isset($schema['enum'])) {
                 $options = implode('', array_map(function ($opt) use ($value) {
@@ -477,7 +454,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
                 return sprintf(
                     '<select name="%s">%s</select>',
-                    esc_attr($setting_name . "[{$field}]"),
+                    esc_attr($setting . "[{$field}]"),
                     $options,
                 );
             } elseif ($schema['type'] === 'array' && $schema['items']['type'] === 'string' && isset($schema['items']['enum'])) {
@@ -493,14 +470,14 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
                 return sprintf(
                     '<select name="%s[]" multiple required>%s</select>',
-                    esc_attr($setting_name . "[{$field}]"),
+                    esc_attr($setting . "[{$field}]"),
                     $options,
                 );
 
             } else {
                 return sprintf(
                     '<input type="text" name="%s" value="%s" />',
-                    esc_attr($setting_name . "[{$field}]"),
+                    esc_attr($setting . "[{$field}]"),
                     esc_attr($value),
                 );
             }
@@ -511,17 +488,16 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
          *
          * @param Setting $setting Setting instance.
          * @param string $field Field name.
+         * @param array $schema Field schema.
+         * @param mixed $value Field value.
          *
          * @return string $html Fieldset HTML.
          */
-        private static function fieldset_render($setting, $field)
+        private static function fieldset_render($setting, $field, $schema, $value)
         {
-            $setting_name = $setting->full_name();
-            [$value, $schema] = self::traverse_data($setting, $field);
-
             $is_list = $schema['type'] === 'array';
 
-            $table_id = $setting_name . '__' . str_replace('][', '_', $field);
+            $table_id = $setting . '__' . str_replace('][', '_', $field);
             $fieldset = '<table id="' . esc_attr($table_id) . '"';
 
             if ($is_list) {
@@ -530,28 +506,28 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
             $fieldset .= '>';
 
-            if ($is_list && $schema['items']['type'] === 'string' && isset($schema['items']['enum'])) {
-                $fieldset .= sprintf('<td>%s</td>', self::input_render($setting, $field));
-            } else {
-                foreach (array_keys($value) as $key) {
-                    $fieldset .= '<tr>';
+            foreach (array_keys($value) as $key) {
+                $fieldset .= '<tr>';
 
-                    if (!$is_list) {
-                        $fieldset .= '<th>' . esc_html($key) . '</th>';
-                    } else {
-                        $key = (int) $key;
-                    }
-
-                    $sub_field = $field . '][' . $key;
-                    $fieldset .= sprintf("<td>%s</td>", self::field_render($setting, $sub_field, $value[$key]));
-
-                    $fieldset .= '</tr>';
+                if (!$is_list) {
+                    $fieldset .= '<th>' . esc_html($key) . '</th>';
+                } else {
+                    $key = (int) $key;
                 }
+
+                if ($schema['type'] === 'object') {
+                    $sub_schema = $schema['properties'][$key];
+                } else {
+                    $sub_schema = $schema['items'];
+                }
+
+                $sub_value = $value[$key];
+                $sub_field = $field . '][' . $key;
+
+                $fieldset .= sprintf("<td>%s</td></td>", self::field_render($setting, $sub_field, $sub_schema, $sub_value));
             }
 
-            $fieldset .= '</table>';
-
-            return $fieldset;
+            return $fieldset . '</table>';
         }
 
         /**
@@ -567,39 +543,13 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
             $field_id = str_replace('][', '_', $field);
             ob_start();
             ?>
-			<div id="<?php echo esc_attr($setting->full_name() . '__' . $field_id . '--controls'); ?>" class="wpct-fieldset-control">
-				<button class="button button-primary" data-action="add">Add</button>
-				<button class="button button-secondary" data-action="remove">Remove</button>
+			<div id="<?php echo esc_attr($setting . '__' . $field_id . '--controls'); ?>" class="wpct-fieldset-control">
+				<button class="button button-primary" data-action="add"><?php _e('Add'); ?></button>
+				<button class="button button-secondary" data-action="remove"><?php _e('Remove'); ?></button>
 			</div>
 			<?php
 
             return ob_get_clean();
-        }
-
-        private static function traverse_data($setting, $field)
-        {
-            $keys = explode('][', $field);
-            $schema = $setting->schema($keys[0]);
-            $value = $setting->data($keys[0]);
-
-            $is_list = wp_is_numeric_array($value);
-            for ($i = 1; $i < count($keys); $i++) {
-                $key = $keys[$i];
-                if ($is_list) {
-                    $key = (int) $key;
-                }
-
-                if ($schema['type'] === 'object') {
-                    $schema = $schema['properties'][$key];
-                } else {
-                    $schema = $schema['items'];
-                }
-
-                $value = $value[$key] ?? null;
-                $is_list = wp_is_numeric_array($value);
-            }
-
-            return [$value, $schema];
         }
 
         /**
