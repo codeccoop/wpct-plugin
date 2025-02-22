@@ -533,7 +533,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         {
             $value = $setting->data()[$field][0];
 
-            add_action('admin_print_scripts', function () use (
+            add_action('admin_print_footer_scripts', function () use (
                 $setting,
                 $field,
                 $value
