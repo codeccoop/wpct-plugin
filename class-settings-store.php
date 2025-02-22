@@ -71,6 +71,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
             return wp_kses($html, [
                 'table' => [
                     'id' => [],
+                    'class' => [],
                 ],
                 'th' => [],
                 'tr' => [],
@@ -85,6 +86,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     'name' => [],
                     'id' => [],
                     'multiple' => [],
+                    'required' => [],
                 ],
                 'option' => [
                     'value' => [],
@@ -92,6 +94,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 ],
                 'div' => [
                     'id' => [],
+                    'class' => [],
                 ],
                 'button' => [
                     'class' => [],
@@ -324,12 +327,12 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     $setting_name = $setting->full_name();
 
                     $section_name = $setting_name . '_section';
-                    /* translators: %s: Setting name */
                     $section_label = esc_html(static::setting_title($setting_name));
+
                     add_settings_section(
                         $section_name,
                         $section_label,
-                        function () use ($setting_name) {
+                        static function () use ($setting_name) {
                             $description = esc_html(static::setting_description($setting_name));
                             printf('<p>%s</p>', esc_html($description));
                         },
@@ -339,6 +342,25 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     foreach (array_keys($default) as $field) {
                         static::add_setting_field($setting, $field);
                     }
+                });
+
+                add_action('admin_enqueue_scripts', function () {
+                    $plugin_url = plugin_dir_url(__FILE__);
+
+                    wp_enqueue_script(
+                        'wpct-fieldset-control',
+                        $plugin_url . 'fieldset-control.js',
+                        [],
+                        '1.0.0',
+                        ['in_footer' => true],
+                    );
+
+                    wp_enqueue_style(
+                        'wpct-admin-style',
+                        $plugin_url . 'admin-style.css',
+                        [],
+                        '1.0.0',
+                    );
                 });
 
                 $settings[$setting->name()] = $setting;
@@ -407,18 +429,15 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
          */
         private static function _field_render($setting, $field, $value)
         {
-            $is_root = false;
             if ($value instanceof Undefined) {
                 $value = $setting->data($field);
-                $is_root = true;
             }
 
             if (!is_array($value)) {
-                return static::input_render($setting, $field, $value);
+                return static::input_render($setting, $field);
             } else {
-                $fieldset = static::fieldset_render($setting, $field, $value);
-                if ($is_root && wp_is_numeric_array($value)) {
-                    static::control_style($setting, $field);
+                $fieldset = static::fieldset_render($setting, $field);
+                if (wp_is_numeric_array($value)) {
                     $fieldset .= static::control_render($setting, $field);
                 }
 
@@ -431,13 +450,134 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
          *
          * @param Setting $setting Setting instance.
          * @param string $field Field name.
-         * @param string $value Field value.
          *
          * @return string $html Input HTML.
          */
-        protected static function input_render($setting, $field, $value)
+        protected static function input_render($setting, $field)
         {
             $setting_name = $setting->full_name();
+            [$value, $schema] = self::traverse_data($setting, $field);
+
+            $is_bool = $schema['type'] === 'boolean';
+            if ($is_bool) {
+                return sprintf(
+                    '<input type="checkbox" name="%s" ' . ($value ? 'checked' : '') . ' />',
+                    esc_attr($setting_name . "[{$field}]"),
+                );
+            } elseif (isset($schema['enum'])) {
+                $options = implode('', array_map(function ($opt) use ($value) {
+                    $is_selected = $value === $opt;
+                    return sprintf(
+                        '<option value="%s" %s>%s</option>',
+                        esc_attr($opt),
+                        $is_selected ? 'selected' : '',
+                        esc_html($opt),
+                    );
+                }, (array) $schema['enum']));
+
+                return sprintf(
+                    '<select name="%s">%s</select>',
+                    esc_attr($setting_name . "[{$field}]"),
+                    $options,
+                );
+            } elseif ($schema['type'] === 'array' && $schema['items']['type'] === 'string' && isset($schema['items']['enum'])) {
+                $options = implode('', array_map(function ($opt) use ($value) {
+                    $is_selected = in_array($opt, $value);
+                    return sprintf(
+                        '<option value="%s" %s>%s</option>',
+                        esc_attr($opt),
+                        $is_selected ? 'selected' : '',
+                        esc_html($opt),
+                    );
+                }, (array) $schema['items']['enum']));
+
+                return sprintf(
+                    '<select name="%s[]" multiple required>%s</select>',
+                    esc_attr($setting_name . "[{$field}]"),
+                    $options,
+                );
+
+            } else {
+                return sprintf(
+                    '<input type="text" name="%s" value="%s" />',
+                    esc_attr($setting_name . "[{$field}]"),
+                    esc_attr($value),
+                );
+            }
+        }
+
+        /**
+         * Render fieldset HTML.
+         *
+         * @param Setting $setting Setting instance.
+         * @param string $field Field name.
+         *
+         * @return string $html Fieldset HTML.
+         */
+        private static function fieldset_render($setting, $field)
+        {
+            $setting_name = $setting->full_name();
+            [$value, $schema] = self::traverse_data($setting, $field);
+
+            $is_list = $schema['type'] === 'array';
+
+            $table_id = $setting_name . '__' . str_replace('][', '_', $field);
+            $fieldset = '<table id="' . esc_attr($table_id) . '"';
+
+            if ($is_list) {
+                $fieldset .= ' class="is-list"';
+            }
+
+            $fieldset .= '>';
+
+            if ($is_list && $schema['items']['type'] === 'string' && isset($schema['items']['enum'])) {
+                $fieldset .= sprintf('<td>%s</td>', self::input_render($setting, $field));
+            } else {
+                foreach (array_keys($value) as $key) {
+                    $fieldset .= '<tr>';
+
+                    if (!$is_list) {
+                        $fieldset .= '<th>' . esc_html($key) . '</th>';
+                    } else {
+                        $key = (int) $key;
+                    }
+
+                    $sub_field = $field . '][' . $key;
+                    $fieldset .= sprintf("<td>%s</td>", self::field_render($setting, $sub_field, $value[$key]));
+
+                    $fieldset .= '</tr>';
+                }
+            }
+
+            $fieldset .= '</table>';
+
+            return $fieldset;
+        }
+
+        /**
+         * Render control HTML.
+         *
+         * @param Setting $setting Setting instance.
+         * @param string $field Field name.
+         *
+         * @return string $html Control HTML.
+         */
+        private static function control_render($setting, $field)
+        {
+            $field_id = str_replace('][', '_', $field);
+            ob_start();
+            ?>
+			<div id="<?php echo esc_attr($setting->full_name() . '__' . $field_id . '--controls'); ?>" class="wpct-fieldset-control">
+				<button class="button button-primary" data-action="add">Add</button>
+				<button class="button button-secondary" data-action="remove">Remove</button>
+			</div>
+			<?php
+
+            return ob_get_clean();
+        }
+
+        private static function traverse_data($setting, $field)
+        {
             $keys = explode('][', $field);
             $schema = $setting->schema($keys[0]);
             $value = $setting->data($keys[0]);
@@ -455,135 +595,11 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     $schema = $schema['items'];
                 }
 
-                $value = $value[$key];
+                $value = $value[$key] ?? null;
                 $is_list = wp_is_numeric_array($value);
             }
-            $is_bool = is_bool($value);
 
-            if ($is_bool) {
-                return sprintf(
-                    '<input type="checkbox" name="%s" ' . ($value ? 'checked' : '') . ' />',
-                    esc_attr($setting_name . "[{$field}]"),
-                );
-            } elseif (isset($schema['enum'])) {
-                $options = implode('', array_map(function ($opt) use ($value) {
-                    $is_selected = is_array($value) ? in_array($opt, $value) : $value === $opt;
-                    return sprintf(
-                        '<option value="%s" %s>%s</option>',
-                        esc_attr($opt),
-                        $is_selected ? 'selected' : '',
-                        esc_html($opt),
-                    );
-                }, (array) $schema['enum']));
-                $multi = is_array($value) ? 'multiple' : '';
-                $select = sprintf(
-                    '<select name="%s" %s>%s</select>',
-                    esc_attr($setting_name . "[{$field}]"),
-                    esc_attr($multi),
-                    $options,
-                );
-                return $select;
-            } else {
-                return sprintf(
-                    '<input type="text" name="%s" value="%s" />',
-                    esc_attr($setting_name . "[{$field}]"),
-                    esc_attr($value),
-                );
-            }
-        }
-
-        /**
-         * Render fieldset HTML.
-         *
-         * @param Setting $setting Setting instance.
-         * @param string $field Field name.
-         * @param array $data Setting data.
-         *
-         * @return string $html Fieldset HTML.
-         */
-        private static function fieldset_render($setting, $field, $data)
-        {
-            $setting_name = $setting->full_name();
-            $table_id = $setting_name . '__' . str_replace('][', '_', $field);
-            $fieldset = '<table id="' . esc_attr($table_id) . '">';
-            $is_list = wp_is_numeric_array($data);
-            foreach (array_keys($data) as $key) {
-                $fieldset .= '<tr>';
-                if (!$is_list) {
-                    $fieldset .= '<th>' . esc_html($key) . '</th>';
-                }
-                $_field = $field . '][' . $key;
-                $fieldset .= sprintf("<td>%s</td>", self::field_render($setting, $_field, $data[$key]));
-                $fieldset .= '</tr>';
-            }
-            $fieldset .= '</table>';
-
-            return $fieldset;
-        }
-
-        /**
-         * Render control HTML.
-         *
-         * @param Setting $setting Setting instance.
-         * @param string $field Field name.
-         *
-         * @return string $html Control HTML.
-         */
-        private static function control_render($setting, $field)
-        {
-            $value = $setting->data()[$field][0];
-
-            add_action('admin_print_footer_scripts', function () use (
-                $setting,
-                $field,
-                $value
-            ) {
-                static::control_script($setting, $field, $value);
-            });
-
-            ob_start();
-            ?>
-			<div id="<?php echo esc_attr($setting->full_name() . '__' . $field . '--controls'); ?>">
-				<button class="button button-primary" data-action="add">Add</button>
-				<button class="button button-secondary" data-action="remove">Remove</button>
-			</div>
-			<?php
-
-            return ob_get_clean();
-        }
-
-        /**
-         * Include localized fieldset control script and return the buffer as string.
-         *
-         * @param Setting $setting Setting instance.
-         * @param string $field_name Setting's field name.
-         * @param mixed $field_value Setting's field value.
-         *
-         * @return string Fieldset control rendered script.
-         */
-        private static function control_script($setting, $field_name, $field_value)
-        {
-            include 'fieldset-control-js.php';
-        }
-
-        /**
-         * Render control style tag.
-         *
-         * @param Setting $setting Setting instance.
-         * @param string $field Field name.
-         *
-         * @return string $tag Style HTML tag with control styles.
-         */
-        private static function control_style($setting, $field)
-        {
-            $setting_name = $setting->full_name();
-            add_action('admin_print_footer_styles', function () use ($setting_name, $field) {
-                printf(
-                    '<style>#%1$s__%2$s td td,#%1$s__%2$s td th{padding:0}#%1$s__%2$s table table{margin-bottom:1rem}</style>',
-                    esc_attr($setting_name),
-                    esc_attr($field),
-                );
-            });
+            return [$value, $schema];
         }
 
         /**
