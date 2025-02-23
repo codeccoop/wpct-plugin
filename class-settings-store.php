@@ -426,7 +426,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         {
             if (!in_array($schema['type'], ['array', 'object'])) {
                 return static::input_render($setting, $field, $schema, $value);
-            } elseif ($schema['type'] === 'array' && isset($schema['items']['enum'])) {
+            } elseif ($schema['type'] === 'array' && isset($schema['enum'])) {
                 return self::input_render($setting, $field, $schema, $value);
             } else {
                 $fieldset = static::fieldset_render($setting, $field, $schema, $value);
@@ -454,7 +454,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     '<input type="checkbox" name="%s" ' . ($value ? 'checked' : '') . ' />',
                     esc_attr($setting . "[{$field}]"),
                 );
-            } elseif (isset($schema['enum'])) {
+            } elseif ($schema['type'] === 'string' && isset($schema['enum'])) {
                 $options = implode('', array_map(function ($opt) use ($value) {
                     $is_selected = $value === $opt;
                     return sprintf(
@@ -470,7 +470,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     esc_attr($setting . "[{$field}]"),
                     $options,
                 );
-            } elseif ($schema['type'] === 'array' && isset($schema['items']['enum'])) {
+            } elseif ($schema['type'] === 'array' && isset($schema['enum'])) {
                 $options = implode('', array_map(function ($opt) use ($value) {
                     $is_selected = in_array($opt, $value);
                     return sprintf(
@@ -479,7 +479,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                         $is_selected ? 'selected' : '',
                         esc_html($opt),
                     );
-                }, (array) $schema['items']['enum']));
+                }, (array) $schema['enum']));
 
                 return sprintf(
                     '<select name="%s[]" multiple required>%s</select>',
