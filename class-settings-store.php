@@ -207,17 +207,33 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                         return [];
                     }
 
-                    return array_map(static function ($item) use ($schema) {
+                    $value = array_map(static function ($item) use ($schema) {
                         return self::sanitize_value($schema['items'], $item);
                     }, array_values($value));
+
+                    if (isset($schema['enum']) && is_array($schema['enum'])) {
+                        $value = array_values(array_filter($value, static function ($item) use ($schema) {
+                            return in_array($item, $schema['enum'], true);
+                        }));
+                    }
+
+                    if ($schema['uniqueItems'] ?? false) {
+                        $value = array_unique($value);
+                    }
+
+                    return $value;
                 case 'object':
                     if (!is_array($value)) {
                         return [];
                     }
+
                     return array_reduce(array_keys($value), static function ($sanitized, $key) use ($schema, $value) {
-                        if (isset($schema['properties'][$key])) {
+                        $additionals = $schema['additionalProperties'] ?? false;
+
+                        if (isset($schema['properties'][$key]) || $additionals) {
                             $sanitized[$key] = self::sanitize_value($schema['properties'][$key], $value[$key]);
                         }
+
                         return $sanitized;
                     }, []);
             }
@@ -379,7 +395,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         private static function add_setting_field($setting, $field)
         {
             $setting_name = $setting->full_name();
-            $field_id = $setting_name . '__' . $field;
             $field_label = esc_html(static::field_label($field, $setting_name));
 
             add_settings_field(
@@ -394,9 +409,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 },
                 $setting_name,
                 $setting_name . '_section',
-                // [
-                //     'class' => $field_id,
-                // ]
             );
         }
 
@@ -414,7 +426,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         {
             if (!in_array($schema['type'], ['array', 'object'])) {
                 return static::input_render($setting, $field, $schema, $value);
-            } elseif ($schema['type'] === 'array' && $schema['items']['type'] === 'string' && isset($schema['items']['enum'])) {
+            } elseif ($schema['type'] === 'array' && isset($schema['items']['enum'])) {
                 return self::input_render($setting, $field, $schema, $value);
             } else {
                 $fieldset = static::fieldset_render($setting, $field, $schema, $value);
@@ -458,7 +470,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     esc_attr($setting . "[{$field}]"),
                     $options,
                 );
-            } elseif ($schema['type'] === 'array' && $schema['items']['type'] === 'string' && isset($schema['items']['enum'])) {
+            } elseif ($schema['type'] === 'array' && isset($schema['items']['enum'])) {
                 $options = implode('', array_map(function ($opt) use ($value) {
                     $is_selected = in_array($opt, $value);
                     return sprintf(
