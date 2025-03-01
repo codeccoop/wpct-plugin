@@ -366,7 +366,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
                     wp_enqueue_script(
                         'wpct-fieldset-control',
-                        $plugin_url . 'fieldset-control.js',
+                        $plugin_url . 'admin-form.js',
                         [],
                         '1.0.0',
                         ['in_footer' => true],
@@ -374,7 +374,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
                     wp_enqueue_style(
                         'wpct-admin-style',
-                        $plugin_url . 'admin-style.css',
+                        $plugin_url . 'admin-form.css',
                         [],
                         '1.0.0',
                     );
@@ -451,7 +451,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         {
             if ($schema['type'] === 'boolean') {
                 return sprintf(
-                    '<input type="checkbox" name="%s" ' . ($value ? 'checked' : '') . ' />',
+                    '<input type="checkbox" name="%s" ' . ($value ? 'checked="true"' : '') . ' />',
                     esc_attr($setting . "[{$field}]"),
                 );
             } elseif ($schema['type'] === 'string' && isset($schema['enum'])) {

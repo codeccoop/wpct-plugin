@@ -238,7 +238,7 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
 
             $value = $data[$field] ?? null;
 
-            if (empty($vale) && $target === 'data') {
+            if (empty($value) && $target === 'data') {
                 $value = $this->default[$field] ?? $value;
             }
 
