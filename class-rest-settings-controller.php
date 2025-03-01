@@ -84,12 +84,12 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             return self::get_instance()->group;
         }
 
-        final protected static function namespace()
+        final public static function namespace()
         {
             return apply_filters('wpct_rest_namespace', self::group());
         }
 
-        final protected static function version()
+        final public static function version()
         {
             return (int) apply_filters('wpct_rest_version', 1, self::group());
         }
@@ -213,7 +213,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
          *
          * @return boolean
          */
-        final protected static function permission_callback()
+        final public static function permission_callback()
         {
             return current_user_can('manage_options')
                 ? true
