@@ -557,8 +557,8 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
             ob_start();
             ?>
 			<div id="<?php echo esc_attr($setting . '__' . $field_id . '--controls'); ?>" class="wpct-fieldset-control">
-				<button class="button button-primary" data-action="add"><?php _e('Add'); ?></button>
-				<button class="button button-secondary" data-action="remove"><?php _e('Remove'); ?></button>
+				<button class="button button-primary" data-action="add"><?php _e('Add', 'wpct-plugin-abstracts'); ?></button>
+				<button class="button button-secondary" data-action="remove"><?php _e('Remove', 'wpct-plugin-abstracts'); ?></button>
 			</div>
 			<?php
 
