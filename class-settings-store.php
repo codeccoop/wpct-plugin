@@ -254,9 +254,18 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
             static::$rest_controller_class::setup($group);
 
             add_action('init', static function () use ($group) {
-                $settings = static::register_settings();
-                do_action('wpct_register_settings', $settings, $group);
+                do_action('wpct_init_store');
             });
+
+            add_action(
+                'wpct_init_store',
+                static function () use ($group) {
+                    $settings = static::register_settings();
+                    do_action('wpct_register_settings', $settings, $group);
+                },
+                10,
+                0
+            );
         }
 
         /**
@@ -303,41 +312,45 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 $group = static::group();
                 [$name, $schema, $default] = $setting_config;
 
-                $setting = new Setting(
-                    $group,
-                    $name,
-                    $default,
-                    [
-                        '$id' => $group . '_' . $name,
-                        '$schema' => 'http://json-schema.org/draft-04/schema#',
-                        'title' => "Setting {$name} of {$group}",
-                        'type' => 'object',
-                        'properties' => $schema,
-                        'required' => array_keys($schema),
-                        'additionalProperties' => false
-                    ],
-                );
-
-                $setting_name = $setting->full_name();
-
-                // Register setting
-                register_setting(
-                    $setting_name,
-                    $setting_name,
-                    [
-                        'type' => 'object',
-                        'show_in_rest' => [
-                            'name' => $setting_name,
-                            'schema' => $setting->schema(),
+                if ($setting = static::setting($name)) {
+                    $settings[$setting->name()] = $setting;
+                } else {
+                    $setting = new Setting(
+                        $group,
+                        $name,
+                        $default,
+                        [
+                            '$id' => $group . '_' . $name,
+                            '$schema' => 'http://json-schema.org/draft-04/schema#',
+                            'title' => "Setting {$name} of {$group}",
+                            'type' => 'object',
+                            'properties' => $schema,
+                            'required' => array_keys($schema),
+                            'additionalProperties' => false
                         ],
-                        'sanitize_callback' => function ($value) use ($name) {
-                            return static::sanitize_setting($value, $name);
-                        },
-                        'default' => $setting->default(),
-                    ],
-                );
+                    );
 
-                static::store($name, $setting);
+                    $setting_name = $setting->full_name();
+
+                    // Register setting
+                    register_setting(
+                        $setting_name,
+                        $setting_name,
+                        [
+                            'type' => 'object',
+                            'show_in_rest' => [
+                                'name' => $setting_name,
+                                'schema' => $setting->schema(),
+                            ],
+                            'sanitize_callback' => function ($value) use ($name) {
+                                return static::sanitize_setting($value, $name);
+                            },
+                            'default' => $setting->default(),
+                        ],
+                    );
+
+                    static::store($name, $setting);
+                }
 
                 // Add settings section on admin init
                 add_action('admin_init', function () use ($setting, $default) {
