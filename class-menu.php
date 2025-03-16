@@ -161,5 +161,16 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
         {
             return $setting_name;
         }
+
+        public static function is_admin_current_page()
+        {
+            if (is_admin()) {
+                $page = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : null;
+                $slug = static::slug();
+                return $page && $page === $slug;
+            }
+
+            return false;
+        }
     }
 }

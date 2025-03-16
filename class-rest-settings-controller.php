@@ -223,5 +223,12 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                     403,
                 );
         }
+
+        public static function is_doing_rest()
+        {
+            $ns = static::get_instance()->namespace();
+            $uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field($_SERVER['REQUEST_URI']) : null;
+            return $uri && preg_match("/\/wp-json\/{$ns}\//", $uri);
+        }
     }
 }
