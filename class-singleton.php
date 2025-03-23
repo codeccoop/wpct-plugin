@@ -8,8 +8,7 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
-
+if (!class_exists('\WPCT_ABSTRACT\Singleton')):
     /**
      * Singleton abstract class.
      */
@@ -31,9 +30,7 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
         /**
          * Prevent class clonning.
          */
-        final public function __clone()
-        {
-        }
+        final public function __clone() {}
 
         /**
          * Prevent class serialization.
@@ -61,7 +58,9 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
                 // Pass $singleton reference to prevent singleton classes constructor overwrites
                 self::$_instances[$cls] = new static($singleton);
                 if (!$singleton) {
-                    throw new Error('Cannot create uncontrolled instances from a singleton.');
+                    throw new Error(
+                        'Cannot create uncontrolled instances from a singleton.'
+                    );
                 }
                 self::$_instances[$cls]->construct(...$args);
             }
@@ -69,5 +68,4 @@ if (!class_exists('\WPCT_ABSTRACT\Singleton')) :
             return self::$_instances[$cls];
         }
     }
-
 endif;

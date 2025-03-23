@@ -11,7 +11,6 @@ if (!defined('ABSPATH')) {
 }
 
 if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
-
     require_once 'class-singleton.php';
 
     /**
@@ -20,10 +19,10 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
     class REST_Settings_Controller extends Singleton
     {
         /**
-        * Handle plugin settings group name.
-        *
-        * @var string
-        */
+         * Handle plugin settings group name.
+         *
+         * @var string
+         */
         private $group;
 
         /**
@@ -42,7 +41,6 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         {
             return self::get_instance($group);
         }
-
 
         /**
          * Internal WP_Error proxy.
@@ -72,11 +70,16 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                 static::init();
             });
 
-            add_action('wpct_register_settings', function ($settings, $group) {
-                if ($group === $this->group) {
-                    $this->settings = $settings;
-                }
-            }, 10, 2);
+            add_action(
+                'wpct_register_settings',
+                function ($settings, $group) {
+                    if ($group === $this->group) {
+                        $this->settings = $settings;
+                    }
+                },
+                10,
+                2
+            );
         }
 
         final protected static function group()
@@ -108,35 +111,31 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             $namespace = self::namespace();
             $version = self::version();
 
-            register_rest_route(
-                "{$namespace}/v{$version}",
-                "/settings/",
+            register_rest_route("{$namespace}/v{$version}", '/settings/', [
                 [
-                    [
-                        'methods' => WP_REST_Server::READABLE,
-                        'callback' => static function () {
-                            return self::get_settings();
-                        },
-                        'permission_callback' => static function () {
-                            return self::permission_callback();
-                        },
-                    ],
-                    [
-                        'methods' => WP_REST_Server::CREATABLE,
-                        'callback' => static function ($request) {
-                            return self::set_settings($request);
-                        },
-                        'permission_callback' => static function () {
-                            return self::permission_callback();
-                        },
-                        'args' => self::schema()['properties'],
-                    ],
-                    'schema' => static function () {
-                        return self::schema();
+                    'methods' => WP_REST_Server::READABLE,
+                    'callback' => static function () {
+                        return self::get_settings();
                     },
-                    'allow_batch' => ['v1' => false],
+                    'permission_callback' => static function () {
+                        return self::permission_callback();
+                    },
                 ],
-            );
+                [
+                    'methods' => WP_REST_Server::CREATABLE,
+                    'callback' => static function ($request) {
+                        return self::set_settings($request);
+                    },
+                    'permission_callback' => static function () {
+                        return self::permission_callback();
+                    },
+                    'args' => self::schema()['properties'],
+                ],
+                'schema' => static function () {
+                    return self::schema();
+                },
+                'allow_batch' => ['v1' => false],
+            ]);
         }
 
         /**
@@ -148,17 +147,23 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
         {
             $settings = self::settings();
 
-            return array_reduce($settings, static function ($schema, $setting) {
-                $setting_schema = $setting->schema();
-                unset($setting_schema['additionalProperties']);
-                $schema['properties'][$setting->full_name()] = $setting_schema;
-                return $schema;
-            }, [
-                '$schema' => 'http://json-schema.org/draft-04/schema#',
-                'title' => self::group(),
-                'type' => 'object',
-                'properties' => [],
-            ]);
+            return array_reduce(
+                $settings,
+                static function ($schema, $setting) {
+                    $setting_schema = $setting->schema();
+                    unset($setting_schema['additionalProperties']);
+                    $schema['properties'][
+                        $setting->full_name()
+                    ] = $setting_schema;
+                    return $schema;
+                },
+                [
+                    '$schema' => 'http://json-schema.org/draft-04/schema#',
+                    'title' => self::group(),
+                    'type' => 'object',
+                    'properties' => [],
+                ]
+            );
         }
 
         /**
@@ -204,7 +209,11 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                 }
                 return ['success' => true];
             } catch (Error $e) {
-                return self::error('internal_server_error', $e->getMessage(), $data);
+                return self::error(
+                    'internal_server_error',
+                    $e->getMessage(),
+                    $data
+                );
             }
         }
 
@@ -220,14 +229,16 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
                 : self::error(
                     'rest_unauthorized',
                     'You can\'t manage wp options',
-                    403,
+                    403
                 );
         }
 
         public static function is_doing_rest()
         {
             $ns = static::get_instance()->namespace();
-            $uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field($_SERVER['REQUEST_URI']) : null;
+            $uri = isset($_SERVER['REQUEST_URI'])
+                ? sanitize_text_field($_SERVER['REQUEST_URI'])
+                : null;
             return $uri && preg_match("/\/wp-json\/{$ns}\//", $uri);
         }
     }

@@ -7,7 +7,6 @@ if (!defined('ABSPATH')) {
 }
 
 if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
-
     require_once 'class-singleton.php';
     require_once 'class-setting.php';
     require_once 'class-rest-settings-controller.php';
@@ -100,7 +99,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 'button' => [
                     'class' => [],
                     'data-action' => [],
-                ]
+                ],
             ]);
         }
 
@@ -132,17 +131,30 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     continue;
                 }
 
-                $sanitized[$field] = self::sanitize_value($schema['properties'][$field], $value);
+                $sanitized[$field] = self::sanitize_value(
+                    $schema['properties'][$field],
+                    $value
+                );
             }
 
             $full_name = $setting->full_name();
-            add_action("add_option_{$full_name}", static function () use ($instance) {
-                $instance->sanitizing = null;
-            }, 10, 0);
+            add_action(
+                "add_option_{$full_name}",
+                static function () use ($instance) {
+                    $instance->sanitizing = null;
+                },
+                10,
+                0
+            );
 
-            add_action("update_option_{$full_name}", static function () use ($instance) {
-                $instance->sanitizing = null;
-            }, 10, 0);
+            add_action(
+                "update_option_{$full_name}",
+                static function () use ($instance) {
+                    $instance->sanitizing = null;
+                },
+                10,
+                0
+            );
 
             $setting->flush();
             return $sanitized;
@@ -162,15 +174,23 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 case 'string':
                     $value = sanitize_text_field($value);
                     if (isset($schema['enum'])) {
-                        $value = in_array($value, $schema['enum']) ? $value : null;
+                        $value = in_array($value, $schema['enum'])
+                            ? $value
+                            : null;
                     }
 
                     if (is_string($value) && isset($schema['minLength'])) {
-                        $value = strlen($value) >= $schema['minLength'] ? $value : null;
+                        $value =
+                            strlen($value) >= $schema['minLength']
+                                ? $value
+                                : null;
                     }
 
                     if (is_string($value) && isset($schema['maxLength'])) {
-                        $value = strlen($value) <= $schema['maxLength'] ? $value : null;
+                        $value =
+                            strlen($value) <= $schema['maxLength']
+                                ? $value
+                                : null;
                     }
 
                     return $value;
@@ -212,9 +232,13 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     }, array_values($value));
 
                     if (isset($schema['enum']) && is_array($schema['enum'])) {
-                        $value = array_values(array_filter($value, static function ($item) use ($schema) {
-                            return in_array($item, $schema['enum'], true);
-                        }));
+                        $value = array_values(
+                            array_filter($value, static function ($item) use (
+                                $schema
+                            ) {
+                                return in_array($item, $schema['enum'], true);
+                            })
+                        );
                     }
 
                     if ($schema['uniqueItems'] ?? false) {
@@ -227,15 +251,29 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                         return [];
                     }
 
-                    return array_reduce(array_keys($value), static function ($sanitized, $key) use ($schema, $value) {
-                        $additionals = $schema['additionalProperties'] ?? false;
+                    return array_reduce(
+                        array_keys($value),
+                        static function ($sanitized, $key) use (
+                            $schema,
+                            $value
+                        ) {
+                            $additionals =
+                                $schema['additionalProperties'] ?? false;
 
-                        if (isset($schema['properties'][$key]) || $additionals) {
-                            $sanitized[$key] = self::sanitize_value($schema['properties'][$key], $value[$key]);
-                        }
+                            if (
+                                isset($schema['properties'][$key]) ||
+                                $additionals
+                            ) {
+                                $sanitized[$key] = self::sanitize_value(
+                                    $schema['properties'][$key],
+                                    $value[$key]
+                                );
+                            }
 
-                        return $sanitized;
-                    }, []);
+                            return $sanitized;
+                        },
+                        []
+                    );
             }
         }
 
@@ -305,7 +343,11 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
          */
         private static function register_settings()
         {
-            $config = apply_filters('wpct_settings_config', static::config(), static::group());
+            $config = apply_filters(
+                'wpct_settings_config',
+                static::config(),
+                static::group()
+            );
 
             $settings = [];
             foreach ($config as $setting_config) {
@@ -315,39 +357,30 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 if ($setting = static::setting($name)) {
                     $settings[$setting->name()] = $setting;
                 } else {
-                    $setting = new Setting(
-                        $group,
-                        $name,
-                        $default,
-                        [
-                            '$id' => $group . '_' . $name,
-                            '$schema' => 'http://json-schema.org/draft-04/schema#',
-                            'title' => "Setting {$name} of {$group}",
-                            'type' => 'object',
-                            'properties' => $schema,
-                            'required' => array_keys($schema),
-                            'additionalProperties' => false
-                        ],
-                    );
+                    $setting = new Setting($group, $name, $default, [
+                        '$id' => $group . '_' . $name,
+                        '$schema' => 'http://json-schema.org/draft-04/schema#',
+                        'title' => "Setting {$name} of {$group}",
+                        'type' => 'object',
+                        'properties' => $schema,
+                        'required' => array_keys($schema),
+                        'additionalProperties' => false,
+                    ]);
 
                     $setting_name = $setting->full_name();
 
                     // Register setting
-                    register_setting(
-                        $setting_name,
-                        $setting_name,
-                        [
-                            'type' => 'object',
-                            'show_in_rest' => [
-                                'name' => $setting_name,
-                                'schema' => $setting->schema(),
-                            ],
-                            'sanitize_callback' => function ($value) use ($name) {
-                                return static::sanitize_setting($value, $name);
-                            },
-                            'default' => $setting->default(),
+                    register_setting($setting_name, $setting_name, [
+                        'type' => 'object',
+                        'show_in_rest' => [
+                            'name' => $setting_name,
+                            'schema' => $setting->schema(),
                         ],
-                    );
+                        'sanitize_callback' => function ($value) use ($name) {
+                            return static::sanitize_setting($value, $name);
+                        },
+                        'default' => $setting->default(),
+                    ]);
 
                     static::store($name, $setting);
                 }
@@ -357,16 +390,20 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     $setting_name = $setting->full_name();
 
                     $section_name = $setting_name . '_section';
-                    $section_label = esc_html(static::setting_title($setting_name));
+                    $section_label = esc_html(
+                        static::setting_title($setting_name)
+                    );
 
                     add_settings_section(
                         $section_name,
                         $section_label,
                         static function () use ($setting_name) {
-                            $description = esc_html(static::setting_description($setting_name));
+                            $description = esc_html(
+                                static::setting_description($setting_name)
+                            );
                             printf('<p>%s</p>', esc_html($description));
                         },
-                        $setting_name,
+                        $setting_name
                     );
 
                     foreach (array_keys($default) as $field) {
@@ -382,14 +419,14 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                         $plugin_url . 'admin-form.js',
                         [],
                         '1.0.0',
-                        ['in_footer' => true],
+                        ['in_footer' => true]
                     );
 
                     wp_enqueue_style(
                         'wpct-admin-style',
                         $plugin_url . 'admin-form.css',
                         [],
-                        '1.0.0',
+                        '1.0.0'
                     );
                 });
 
@@ -418,10 +455,17 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     $schema = $setting->schema($field);
                     $value = $setting->data($field);
 
-                    echo static::kses(static::field_render($setting_name, $field, $schema, $value));
+                    echo static::kses(
+                        static::field_render(
+                            $setting_name,
+                            $field,
+                            $schema,
+                            $value
+                        )
+                    );
                 },
                 $setting_name,
-                $setting_name . '_section',
+                $setting_name . '_section'
             );
         }
 
@@ -442,7 +486,12 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
             } elseif ($schema['type'] === 'array' && isset($schema['enum'])) {
                 return self::input_render($setting, $field, $schema, $value);
             } else {
-                $fieldset = static::fieldset_render($setting, $field, $schema, $value);
+                $fieldset = static::fieldset_render(
+                    $setting,
+                    $field,
+                    $schema,
+                    $value
+                );
                 if ($schema['type'] === 'array') {
                     $fieldset .= static::control_render($setting, $field);
                 }
@@ -460,51 +509,62 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
          *
          * @return string
          */
-        protected static function input_render($setting, $field, $schema, $value)
-        {
+        protected static function input_render(
+            $setting,
+            $field,
+            $schema,
+            $value
+        ) {
             if ($schema['type'] === 'boolean') {
                 return sprintf(
-                    '<input type="checkbox" name="%s" ' . ($value ? 'checked="true"' : '') . ' />',
-                    esc_attr($setting . "[{$field}]"),
+                    '<input type="checkbox" name="%s" ' .
+                        ($value ? 'checked="true"' : '') .
+                        ' />',
+                    esc_attr($setting . "[{$field}]")
                 );
             } elseif ($schema['type'] === 'string' && isset($schema['enum'])) {
-                $options = implode('', array_map(function ($opt) use ($value) {
-                    $is_selected = $value === $opt;
-                    return sprintf(
-                        '<option value="%s" %s>%s</option>',
-                        esc_attr($opt),
-                        $is_selected ? 'selected' : '',
-                        esc_html($opt),
-                    );
-                }, (array) $schema['enum']));
+                $options = implode(
+                    '',
+                    array_map(function ($opt) use ($value) {
+                        $is_selected = $value === $opt;
+                        return sprintf(
+                            '<option value="%s" %s>%s</option>',
+                            esc_attr($opt),
+                            $is_selected ? 'selected' : '',
+                            esc_html($opt)
+                        );
+                    }, (array) $schema['enum'])
+                );
 
                 return sprintf(
                     '<select name="%s">%s</select>',
                     esc_attr($setting . "[{$field}]"),
-                    $options,
+                    $options
                 );
             } elseif ($schema['type'] === 'array' && isset($schema['enum'])) {
-                $options = implode('', array_map(function ($opt) use ($value) {
-                    $is_selected = in_array($opt, $value);
-                    return sprintf(
-                        '<option value="%s" %s>%s</option>',
-                        esc_attr($opt),
-                        $is_selected ? 'selected' : '',
-                        esc_html($opt),
-                    );
-                }, (array) $schema['enum']));
+                $options = implode(
+                    '',
+                    array_map(function ($opt) use ($value) {
+                        $is_selected = in_array($opt, $value);
+                        return sprintf(
+                            '<option value="%s" %s>%s</option>',
+                            esc_attr($opt),
+                            $is_selected ? 'selected' : '',
+                            esc_html($opt)
+                        );
+                    }, (array) $schema['enum'])
+                );
 
                 return sprintf(
                     '<select name="%s[]" multiple required>%s</select>',
                     esc_attr($setting . "[{$field}]"),
-                    $options,
+                    $options
                 );
-
             } else {
                 return sprintf(
                     '<input type="text" name="%s" value="%s" />',
                     esc_attr($setting . "[{$field}]"),
-                    esc_attr($value),
+                    esc_attr($value)
                 );
             }
         }
@@ -519,8 +579,12 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
          *
          * @return string $html Fieldset HTML.
          */
-        private static function fieldset_render($setting, $field, $schema, $value)
-        {
+        private static function fieldset_render(
+            $setting,
+            $field,
+            $schema,
+            $value
+        ) {
             $is_list = $schema['type'] === 'array';
 
             $table_id = $setting . '__' . str_replace('][', '_', $field);
@@ -550,7 +614,15 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                 $sub_value = $value[$key];
                 $sub_field = $field . '][' . $key;
 
-                $fieldset .= sprintf("<td>%s</td></td>", self::field_render($setting, $sub_field, $sub_schema, $sub_value));
+                $fieldset .= sprintf(
+                    '<td>%s</td></td>',
+                    self::field_render(
+                        $setting,
+                        $sub_field,
+                        $sub_schema,
+                        $sub_value
+                    )
+                );
             }
 
             return $fieldset . '</table>';
@@ -573,9 +645,7 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 				<button class="button button-primary" data-action="add"><?php _e('Add', 'wpct-plugin-abstracts'); ?></button>
 				<button class="button button-secondary" data-action="remove"><?php _e('Remove', 'wpct-plugin-abstracts'); ?></button>
 			</div>
-			<?php
-
-            return ob_get_clean();
+			<?php return ob_get_clean();
         }
 
         /**

@@ -7,7 +7,6 @@ if (!defined('ABSPATH')) {
 }
 
 if (!class_exists('\WPCT_ABSTRACT\Menu')) {
-
     require_once 'class-singleton.php';
 
     /**
@@ -81,17 +80,25 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
         protected static function render_page($echo = true)
         {
             $page_settings = static::settings()->settings();
-            $tabs = array_reduce($page_settings, static function ($carry, $setting) {
-                $setting_name = $setting->full_name();
-                /* translators: %s: Setting name */
-                $carry[$setting_name] = esc_html(static::tab_title($setting_name));
-                return $carry;
-            }, []);
-            $current_tab = isset($_GET['tab']) ? sanitize_text_field(wp_unslash($_GET['tab'])) : array_key_first($tabs);
+            $tabs = array_reduce(
+                $page_settings,
+                static function ($carry, $setting) {
+                    $setting_name = $setting->full_name();
+                    /* translators: %s: Setting name */
+                    $carry[$setting_name] = esc_html(
+                        static::tab_title($setting_name)
+                    );
+                    return $carry;
+                },
+                []
+            );
+            $current_tab = isset($_GET['tab'])
+                ? sanitize_text_field(wp_unslash($_GET['tab']))
+                : array_key_first($tabs);
             ob_start();
             ?>
 			<div class="wrap">
-			<h1><?php echo esc_html(get_admin_page_title()) ?></h1>
+			<h1><?php echo esc_html(get_admin_page_title()); ?></h1>
 				<form method="post" action="options.php">
 					<nav class="nav-tab-wrapper">
 					<?php foreach ($tabs as $tab => $name) {
@@ -101,22 +108,23 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
 					        '<a class="nav-tab %s" href="%s">%s</a>',
 					        esc_attr($current),
 					        esc_url($url),
-					        esc_html($name),
+					        esc_html($name)
 					    );
 					} ?>
 					</nav>
-					<?php
-					settings_fields($current_tab);
-            do_settings_sections($current_tab);
-            submit_button();
-            ?>
+				<?php
+				settings_fields($current_tab);
+				do_settings_sections($current_tab);
+				submit_button();
+				?>
 				</form>
 			</div>
 			<?php
-            $output = ob_get_clean();
+			$output = ob_get_clean();
             if ($echo) {
                 echo $output;
             }
+
             return $output;
         }
 
@@ -165,7 +173,9 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
         public static function is_admin_current_page()
         {
             if (is_admin()) {
-                $page = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : null;
+                $page = isset($_GET['page'])
+                    ? sanitize_text_field($_GET['page'])
+                    : null;
                 $slug = static::slug();
                 return $page && $page === $slug;
             }

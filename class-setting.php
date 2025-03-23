@@ -59,22 +59,41 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
         {
             $this->group = $group;
             $this->name = $name;
-            $this->default = apply_filters('wpct_setting_default', $data, $this->full_name());
+            $this->default = apply_filters(
+                'wpct_setting_default',
+                $data,
+                $this->full_name()
+            );
             $this->schema = $schema;
 
             $full_name = $this->full_name();
 
-            add_action("add_option_{$full_name}", function ($option, $data) {
-                $this->data = $data;
-            }, 5, 2);
+            add_action(
+                "add_option_{$full_name}",
+                function ($option, $data) {
+                    $this->data = $data;
+                },
+                5,
+                2
+            );
 
-            add_action("update_option_{$full_name}", function ($from, $to) {
-                $this->data = $to;
-            }, 5, 2);
+            add_action(
+                "update_option_{$full_name}",
+                function ($from, $to) {
+                    $this->data = $to;
+                },
+                5,
+                2
+            );
 
-            add_action("delete_option_{$full_name}", function () {
-                $this->data = null;
-            }, 5, 0);
+            add_action(
+                "delete_option_{$full_name}",
+                function () {
+                    $this->data = null;
+                },
+                5,
+                0
+            );
         }
 
         /**
@@ -86,7 +105,11 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
          */
         public function __get($field)
         {
-            $data = apply_filters('wpct_setting_data', $this->data(), $this->full_name());
+            $data = apply_filters(
+                'wpct_setting_data',
+                $this->data(),
+                $this->full_name()
+            );
             return $data[$field] ?? null;
         }
 
@@ -225,7 +248,11 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
             $data = $this->$target;
 
             if ($target === 'data') {
-                $data = apply_filters('wpct_setting_data', $data, $this->full_name());
+                $data = apply_filters(
+                    'wpct_setting_data',
+                    $data,
+                    $this->full_name()
+                );
             }
 
             if ($field === null) {

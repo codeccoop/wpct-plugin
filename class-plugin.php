@@ -9,7 +9,6 @@ if (!defined('ABSPATH')) {
 }
 
 if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
-
     require_once 'class-singleton.php';
     require_once 'class-menu.php';
     require_once 'class-settings-store.php';
@@ -57,23 +56,17 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
         /**
          * Plugin initializer.
          */
-        protected static function init()
-        {
-        }
+        protected static function init() {}
 
         /**
          * Plugin activation callback.
          */
-        public static function activate()
-        {
-        }
+        public static function activate() {}
 
         /**
          * Plugin deactivation callback.
          */
-        public static function deactivate()
-        {
-        }
+        public static function deactivate() {}
 
         /**
          * Public plugin's initializer.
@@ -92,7 +85,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         final public static function is_plugin_active($plugin_name)
         {
-            include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+            include_once ABSPATH . 'wp-admin/includes/plugin.php';
             return is_plugin_active($plugin_name);
         }
 
@@ -102,10 +95,16 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
         protected function construct(...$args)
         {
             if (isset(static::$settings_class)) {
-                $this->settings_store = static::$settings_class::get_instance(static::slug());
+                $this->settings_store = static::$settings_class::get_instance(
+                    static::slug()
+                );
 
                 if (isset(static::$menu_class) && static::is_active()) {
-                    $this->menu = static::$menu_class::get_instance(static::name(), static::slug(), $this->settings_store);
+                    $this->menu = static::$menu_class::get_instance(
+                        static::name(),
+                        static::slug(),
+                        $this->settings_store
+                    );
                 }
             }
 
@@ -128,9 +127,15 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                         return $links;
                     }
 
-                    $url = admin_url('options-general.php?page=' . static::slug());
+                    $url = admin_url(
+                        'options-general.php?page=' . static::slug()
+                    );
                     $label = __('Settings', 'wpct-plugin-abstracts');
-                    $link = sprintf('<a href="%s">%s</a>', esc_url($url), esc_html($label));
+                    $link = sprintf(
+                        '<a href="%s">%s</a>',
+                        esc_url($url),
+                        esc_html($label)
+                    );
                     array_unshift($links, $link);
                     return $links;
                 },
@@ -235,7 +240,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         private static function data()
         {
-            include_once(ABSPATH . 'wp-admin/includes/plugin.php');
+            include_once ABSPATH . 'wp-admin/includes/plugin.php';
             $plugin_dir = static::path() . basename(static::index());
             return get_plugin_data($plugin_dir, false, false);
         }
@@ -256,12 +261,15 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
         private static function load_textdomain()
         {
             $data = static::data();
-            $domain_path = isset($data['DomainPath']) && !empty($data['DomainPath']) ? $data['DomainPath'] : '/languages';
+            $domain_path =
+                isset($data['DomainPath']) && !empty($data['DomainPath'])
+                    ? $data['DomainPath']
+                    : '/languages';
 
             load_plugin_textdomain(
                 static::textdomain(),
                 false,
-                dirname(static::index()) . $domain_path,
+                dirname(static::index()) . $domain_path
             );
         }
 
@@ -282,7 +290,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
 
         final public static function setting($name)
         {
-			$store = static::get_instance()->settings_store;
+            $store = static::get_instance()->settings_store;
             if (empty($store)) {
                 return;
             }

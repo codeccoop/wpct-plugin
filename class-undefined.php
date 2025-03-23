@@ -10,7 +10,5 @@ if (!class_exists('\WPCT_ABSTRACT\Undefined')) {
     /**
      * Undefined value.
      */
-    class Undefined
-    {
-    }
+    class Undefined {}
 }
