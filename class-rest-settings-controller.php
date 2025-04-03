@@ -71,7 +71,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             });
 
             add_action(
-                'wpct_register_settings',
+                'wpct_registered_settings',
                 function ($settings, $group) {
                     if ($group === $this->group) {
                         $this->settings = $settings;

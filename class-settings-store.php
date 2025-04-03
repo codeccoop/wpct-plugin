@@ -291,15 +291,11 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
             static::$rest_controller_class::setup($group);
 
-            add_action('init', static function () use ($group) {
-                do_action('wpct_init_store');
-            });
-
             add_action(
-                'wpct_init_store',
+                'init',
                 static function () use ($group) {
                     $settings = static::register_settings();
-                    do_action('wpct_register_settings', $settings, $group);
+                    do_action('wpct_registered_settings', $settings, $group);
                 },
                 10,
                 0
