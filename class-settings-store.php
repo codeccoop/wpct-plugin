@@ -114,6 +114,8 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
         private static function sanitize_setting($data, $name)
         {
             $instance = static::get_instance();
+
+            // Prevent double sanitization
             if ($instance->sanitizing === $name) {
                 return $data;
             }
@@ -129,12 +131,27 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
             foreach ($data as $field => $value) {
                 if (!isset($schema['properties'][$field])) {
                     continue;
+                } else {
+                    $field_schema = $schema['properties'][$field];
                 }
 
-                $sanitized[$field] = self::sanitize_value(
-                    $schema['properties'][$field],
-                    $value
-                );
+                if (rest_validate_value_from_schema($value, $field_schema) === true) {
+                    $sanitized[$field] = rest_sanitize_value_from_schema($value, $field_schema);
+
+                    // support for array enums
+                    if ($field_schema['type'] === 'array' && isset($field_schema['enum']) && is_array($field_schema['enum'])) {
+                        $value = array_values(
+                            array_filter($value, static function ($item) use (
+                                $schema
+                            ) {
+                                return in_array($item, $schema['enum'], true);
+                            })
+                        );
+                    }
+                } else {
+                    // support for schema default values
+                    $sanitized[$field] = $field_schema['default'] ?? null;
+                }
             }
 
             $full_name = $setting->full_name();
@@ -158,123 +175,6 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
 
             $setting->flush();
             return $sanitized;
-        }
-
-        /**
-         * Sanitize value by schema type.
-         *
-         * @param array $schema Field schema.
-         * @aram mixed $value Field value.
-         *
-         * @return mixed Sanitized field value.
-         */
-        private static function sanitize_value($schema, $value)
-        {
-            switch ($schema['type']) {
-                case 'string':
-                    $value = sanitize_text_field($value);
-                    if (isset($schema['enum'])) {
-                        $value = in_array($value, $schema['enum'])
-                            ? $value
-                            : null;
-                    }
-
-                    if (is_string($value) && isset($schema['minLength'])) {
-                        $value =
-                            strlen($value) >= $schema['minLength']
-                                ? $value
-                                : null;
-                    }
-
-                    if (is_string($value) && isset($schema['maxLength'])) {
-                        $value =
-                            strlen($value) <= $schema['maxLength']
-                                ? $value
-                                : null;
-                    }
-
-                    return $value;
-                case 'number':
-                    $value = (float) $value;
-
-                    if (is_float($value) && isset($schema['minimum'])) {
-                        $value = $value >= $schema['minimum'] ? $value : null;
-                    }
-
-                    if (is_float($value) && isset($schema['maximum'])) {
-                        $value = $value <= $schema['maximum'] ? $value : null;
-                    }
-
-                    return $value;
-                case 'integer':
-                    $value = (int) $value;
-
-                    if (is_int($value) && isset($schema['minimum'])) {
-                        $value = $value >= $schema['minimum'] ? $value : null;
-                    }
-
-                    if (is_int($value) && isset($schema['maximum'])) {
-                        $value = $value <= $schema['maximum'] ? $value : null;
-                    }
-
-                    return $value;
-                case 'null':
-                    return null;
-                case 'boolean':
-                    return (bool) $value;
-                case 'array':
-                    if (!wp_is_numeric_array($value)) {
-                        return [];
-                    }
-
-                    $value = array_map(static function ($item) use ($schema) {
-                        return self::sanitize_value($schema['items'], $item);
-                    }, array_values($value));
-
-                    if (isset($schema['enum']) && is_array($schema['enum'])) {
-                        $value = array_values(
-                            array_filter($value, static function ($item) use (
-                                $schema
-                            ) {
-                                return in_array($item, $schema['enum'], true);
-                            })
-                        );
-                    }
-
-                    if ($schema['uniqueItems'] ?? false) {
-                        $value = array_unique($value);
-                    }
-
-                    return $value;
-                case 'object':
-                    if (!is_array($value)) {
-                        return [];
-                    }
-
-                    return array_reduce(
-                        array_keys($value),
-                        static function ($sanitized, $key) use (
-                            $schema,
-                            $value
-                        ) {
-                            $additionals =
-                                $schema['additionalProperties'] ?? false;
-
-                            if (
-                                isset($schema['properties'][$key]) ||
-                                $additionals
-                            ) {
-                                $sanitized[$key] = self::sanitize_value(
-                                    $schema['properties'][$key],
-                                    $value[$key]
-                                );
-                            }
-
-                            return $sanitized;
-                        },
-                        []
-                    );
-            }
         }
 
         private $sanitizing = null;
