@@ -136,7 +136,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                         esc_url($url),
                         esc_html($label)
                     );
-                    array_unshift($links, $link);
+                    array_push($links, $link);
                     return $links;
                 },
                 10,
