@@ -152,9 +152,9 @@ if (!class_exists('\WPCT_ABSTRACT\Settings_Store')) {
                     if ($field_schema['type'] === 'array' && isset($field_schema['enum']) && is_array($field_schema['enum'])) {
                         $value = array_values(
                             array_filter($value, static function ($item) use (
-                                $schema
+                                $field_schema
                             ) {
-                                return in_array($item, $schema['enum'], true);
+                                return in_array($item, $field_schema['enum'], true);
                             })
                         );
                     }
