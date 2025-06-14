@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
 if (!class_exists('\WPCT_PLUGIN\Plugin')) {
     require_once 'class-singleton.php';
     require_once 'class-menu.php';
+    require_once 'class-settings-form.php';
     require_once 'class-settings-store.php';
 
     /**
@@ -37,7 +38,7 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
          *
          * @var string
          */
-        protected static $settings_class = '\WPCT_PLUGIN\Settings_UI';
+        protected static $settings_form_class = '\WPCT_PLUGIN\Settings_Form';
 
         /**
          * Handles plugin's headers data.
@@ -63,9 +64,9 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
         /**
          * Handles plugin's settings ui instance.
          *
-         * @var Settings_UI
+         * @var Settings_Form
          */
-        private $settings_ui;
+        private $settings_form;
 
         /**
          * Plugin initializer.
@@ -127,7 +128,7 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
                             $this->settings_store
                         );
 
-                        $this->settings = static::$settings_class::get_instance($this->settings_store);
+                        $this->settings = static::$settings_form_class::get_instance($this->settings_store);
                     }
                 }
             }

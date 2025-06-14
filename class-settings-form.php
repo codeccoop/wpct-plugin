@@ -6,10 +6,10 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_PLUGIN\Settings_UI')) {
+if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
     require_once 'class-singleton.php';
 
-    class Settings_UI extends Singleton
+    class Settings_Form extends Singleton
     {
         private $store = null;
 
@@ -67,15 +67,6 @@ if (!class_exists('\WPCT_PLUGIN\Settings_UI')) {
         {
             [$store] = $args;
             $this->store = $store;
-
-            add_action(
-                'init',
-                static function () {
-                    static::store()::register_settings();
-                },
-                10,
-                0
-            );
 
             add_action(
                 'admin_init',

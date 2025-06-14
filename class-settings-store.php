@@ -311,7 +311,6 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
                 $settings[$setting->name()] = $setting;
             }
 
-            do_action('wpct_plugin_registered_settings', $settings, $group);
             return $settings;
         }
     }
