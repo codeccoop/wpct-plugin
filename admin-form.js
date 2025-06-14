@@ -35,7 +35,7 @@
 
 		tbody.appendChild(row);
 
-		const controls = row.querySelectorAll(".wpct-fieldset-control");
+		const controls = row.querySelectorAll(".wpct-plugin-fieldset-control");
 		for (const control of controls) {
       control.removeAttribute("data-bound");
 			bindControl(control);
@@ -71,7 +71,7 @@
 		control.dataset.bound = "1";
 	}
 
-	const controls = document.querySelectorAll(".wpct-fieldset-control");
+	const controls = document.querySelectorAll(".wpct-plugin-fieldset-control");
 	for (const control of controls) {
 		bindControl(control);
 	}

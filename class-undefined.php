@@ -1,12 +1,12 @@
 <?php
 
-namespace WPCT_ABSTRACT;
+namespace WPCT_PLUGIN;
 
 if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\Undefined')) {
+if (!class_exists('\WPCT_PLUGIN\Undefined')) {
     /**
      * Undefined value.
      */

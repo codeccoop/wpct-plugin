@@ -1,6 +1,6 @@
 <?php
 
-namespace WPCT_ABSTRACT;
+namespace WPCT_PLUGIN;
 
 use Error;
 use WP_Error;
@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
+if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
     require_once 'class-singleton.php';
 
     /**
@@ -71,7 +71,7 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
             });
 
             add_action(
-                'wpct_registered_settings',
+                'wpct_plugin_registered_settings',
                 function ($settings, $group) {
                     if ($group === $this->group) {
                         $this->settings = $settings;
@@ -89,12 +89,12 @@ if (!class_exists('\WPCT_ABSTRACT\REST_Settings_Controller')) {
 
         final public static function namespace()
         {
-            return apply_filters('wpct_rest_namespace', self::group());
+            return apply_filters('wpct_plugin_rest_namespace', self::group());
         }
 
         final public static function version()
         {
-            return (int) apply_filters('wpct_rest_version', 1, self::group());
+            return (int) apply_filters('wpct_plugin_rest_version', 1, self::group());
         }
 
         final protected static function settings()

@@ -1,18 +1,18 @@
 <?php
 
-namespace WPCT_ABSTRACT;
+namespace WPCT_PLUGIN;
 
 if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\Menu')) {
+if (!class_exists('\WPCT_PLUGIN\Menu')) {
     require_once 'class-singleton.php';
 
     /**
      * Plugin menu abstract class.
      */
-    abstract class Menu extends Singleton
+    class Menu extends Singleton
     {
         /**
          * Handle menu name.
@@ -29,29 +29,29 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
         private $slug;
 
         /**
-         * Handle plugin settings instance.
+         * Handle plugin settings store instance.
          *
          * @var Settings_Store
          */
-        private $settings;
+        private $store;
 
         /**
          * Class constructor. Set attributes and hooks to wp admin hooks.
          *
          * @param string $name Plugin's name.
          * @param string $slug Plugin's slug.
-         * @param array $settings Plugin's setting instances.
+         * @param array $store Plugin's settings store instances.
          */
         protected function construct(...$args)
         {
-            [$name, $slug, $settings] = $args;
+            [$name, $slug, $store] = $args;
             $this->name = $name;
             $this->slug = $slug;
-            $this->settings = $settings;
+            $this->store = $store;
 
             add_action('admin_menu', function () {
                 static::add_menu();
-                do_action('wpct_register_menu', $this->name, $this);
+                do_action('wpct_plugin_register_menu', $this->name, $this);
             });
         }
 
@@ -79,22 +79,20 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
          */
         protected static function render_page($echo = true)
         {
-            $page_settings = static::settings()->settings();
-            $tabs = array_reduce(
-                $page_settings,
-                static function ($carry, $setting) {
-                    $setting_name = $setting->full_name();
-                    /* translators: %s: Setting name */
-                    $carry[$setting_name] = esc_html(
-                        static::tab_title($setting_name)
-                    );
-                    return $carry;
-                },
-                []
-            );
+            $store_settings = static::store()->settings();
+
+            $tabs = [];
+            foreach ($store_settings as $setting) {
+                $setting_name = $setting->full_name();
+                $tabs[$setting_name] = esc_html(
+                    static::tab_title($setting_name)
+                );
+            }
+
             $current_tab = isset($_GET['tab'])
                 ? sanitize_text_field(wp_unslash($_GET['tab']))
                 : array_key_first($tabs);
+
             ob_start();
             ?>
 			<div class="wrap">
@@ -113,14 +111,15 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
 					} ?>
 					</nav>
 				<?php
-				settings_fields($current_tab);
-				do_settings_sections($current_tab);
-				submit_button();
-				?>
+                settings_fields($current_tab);
+            do_settings_sections($current_tab);
+            submit_button();
+            ?>
 				</form>
 			</div>
 			<?php
-			$output = ob_get_clean();
+            $output = ob_get_clean();
+
             if ($echo) {
                 echo $output;
             }
@@ -149,13 +148,13 @@ if (!class_exists('\WPCT_ABSTRACT\Menu')) {
         }
 
         /**
-         * Menu settings getter.
+         * Menu settings store getter.
          *
-         * @return Settings_Store $settings Plugin settings instance.
+         * @return Settings_Store Plugin settings store instance.
          */
-        final public static function settings()
+        final public static function store()
         {
-            return static::get_instance()->settings;
+            return static::get_instance()->store;
         }
 
         /**

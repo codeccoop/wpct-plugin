@@ -1,6 +1,6 @@
 <?php
 
-namespace WPCT_ABSTRACT;
+namespace WPCT_PLUGIN;
 
 use Error;
 
@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\Singleton')):
+if (!class_exists('\WPCT_PLUGIN\Singleton')):
     /**
      * Singleton abstract class.
      */

@@ -1,12 +1,12 @@
 <?php
 
-namespace WPCT_ABSTRACT;
+namespace WPCT_PLUGIN;
 
 if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\Setting')) {
+if (!class_exists('\WPCT_PLUGIN\Setting')) {
     /**
      * Plugin's setting class.
      */
@@ -60,7 +60,7 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
             $this->group = $group;
             $this->name = $name;
             $this->default = apply_filters(
-                'wpct_setting_default',
+                'wpct_plugin_setting_default',
                 $data,
                 $this->full_name()
             );
@@ -106,7 +106,7 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
         public function __get($field)
         {
             $data = apply_filters(
-                'wpct_setting_data',
+                'wpct_plugin_setting_data',
                 $this->data(),
                 $this->full_name()
             );
@@ -249,7 +249,7 @@ if (!class_exists('\WPCT_ABSTRACT\Setting')) {
 
             if ($target === 'data') {
                 $data = apply_filters(
-                    'wpct_setting_data',
+                    'wpct_plugin_setting_data',
                     $data,
                     $this->full_name()
                 );

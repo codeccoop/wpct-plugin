@@ -1,6 +1,6 @@
 <?php
 
-namespace WPCT_ABSTRACT;
+namespace WPCT_PLUGIN;
 
 use ReflectionClass;
 
@@ -8,7 +8,7 @@ if (!defined('ABSPATH')) {
     exit();
 }
 
-if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
+if (!class_exists('\WPCT_PLUGIN\Plugin')) {
     require_once 'class-singleton.php';
     require_once 'class-menu.php';
     require_once 'class-settings-store.php';
@@ -16,21 +16,28 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
     /**
      * Plugin abstract class.
      */
-    abstract class Plugin extends Singleton
+    class Plugin extends Singleton
     {
         /**
          * Handles plugin's menu class name.
          *
          * @var string
          */
-        protected static $menu_class;
+        protected static $menu_class = '\WPCT_PLUGIN\Menu';
 
         /**
          * Handles plugin's settings store class name.
          *
          * @var string
          */
-        protected static $settings_class;
+        protected static $store_class = '\WPCT_PLUGIN\Settings_Store';
+
+        /**
+         * Handles plugin's settings class name.
+         *
+         * @var string
+         */
+        protected static $settings_class = '\WPCT_PLUGIN\Settings_UI';
 
         /**
          * Handles plugin's headers data.
@@ -44,7 +51,7 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          *
          * @var Settings_Store
          */
-        private $settings_store;
+        private $store;
 
         /**
          * Handles plugin's menu instance.
@@ -54,19 +61,32 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
         private $menu;
 
         /**
+         * Handles plugin's settings ui instance.
+         *
+         * @var Settings_UI
+         */
+        private $settings_ui;
+
+        /**
          * Plugin initializer.
          */
-        protected static function init() {}
+        protected static function init()
+        {
+        }
 
         /**
          * Plugin activation callback.
          */
-        public static function activate() {}
+        public static function activate()
+        {
+        }
 
         /**
          * Plugin deactivation callback.
          */
-        public static function deactivate() {}
+        public static function deactivate()
+        {
+        }
 
         /**
          * Public plugin's initializer.
@@ -94,17 +114,21 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
          */
         protected function construct(...$args)
         {
-            if (isset(static::$settings_class)) {
-                $this->settings_store = static::$settings_class::get_instance(
+            if (isset(static::$store_class)) {
+                $this->settings_store = static::$store_class::get_instance(
                     static::slug()
                 );
 
-                if (isset(static::$menu_class) && static::is_active()) {
-                    $this->menu = static::$menu_class::get_instance(
-                        static::name(),
-                        static::slug(),
-                        $this->settings_store
-                    );
+                if (static::is_active()) {
+                    if (isset(static::$menu_class)) {
+                        $this->menu = static::$menu_class::get_instance(
+                            static::name(),
+                            static::slug(),
+                            $this->settings_store
+                        );
+
+                        $this->settings = static::$settings_class::get_instance($this->settings_store);
+                    }
                 }
             }
 
@@ -130,12 +154,13 @@ if (!class_exists('\WPCT_ABSTRACT\Plugin')) {
                     $url = admin_url(
                         'options-general.php?page=' . static::slug()
                     );
-                    $label = __('Settings', 'wpct-plugin-abstracts');
+                    $label = __('Settings', 'wpct-plugin');
                     $link = sprintf(
                         '<a href="%s">%s</a>',
                         esc_url($url),
                         esc_html($label)
                     );
+
                     array_push($links, $link);
                     return $links;
                 },
