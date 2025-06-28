@@ -306,7 +306,7 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
 
         final public static function settings()
         {
-            $store = static::get_instance()->settings_store;
+            $store = static::get_instance()->store;
             if (empty($store)) {
                 return;
             }
@@ -316,7 +316,7 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
 
         final public static function setting($name)
         {
-            $store = static::get_instance()->settings_store;
+            $store = static::get_instance()->store;
             if (empty($store)) {
                 return;
             }
