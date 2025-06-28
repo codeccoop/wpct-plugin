@@ -116,7 +116,7 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
         protected function construct(...$args)
         {
             if (isset(static::$store_class)) {
-                $this->settings_store = static::$store_class::get_instance(
+                $this->store = static::$store_class::get_instance(
                     static::slug()
                 );
 
@@ -125,10 +125,10 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
                         $this->menu = static::$menu_class::get_instance(
                             static::name(),
                             static::slug(),
-                            $this->settings_store
+                            $this->store
                         );
 
-                        $this->settings = static::$settings_form_class::get_instance($this->settings_store);
+                        $this->settings_form = static::$settings_form_class::get_instance($this->store);
                     }
                 }
             }
