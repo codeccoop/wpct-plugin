@@ -11,6 +11,7 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
     require_once 'class-setting.php';
     require_once 'class-rest-settings-controller.php';
     require_once 'class-undefined.php';
+    require_once 'json-schema-utils.php';
 
     /**
      * Plugin settings store class.
@@ -84,43 +85,10 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
             $instance->sanitizing = $name;
             $setting = static::setting($name);
             $schema = $setting->schema();
-            $default = $setting->default();
 
             $data = static::validate_setting($data, $setting);
             $data = apply_filters('wpct_plugin_validate_setting', $data, $setting);
-
-            $sanitized = [];
-            foreach ($data as $field => $value) {
-                if (!isset($schema['properties'][$field])) {
-                    continue;
-                } else {
-                    $field_schema = $schema['properties'][$field];
-                }
-
-                $is_valid = rest_validate_value_from_schema($value, $field_schema, $field);
-                if (is_wp_error($is_valid)) {
-                    $value = self::replace_invalid_with_defaults($value, $field_schema, $is_valid);
-                }
-
-                $value = rest_sanitize_value_from_schema($value, $field_schema, $field);
-                if (is_wp_error($value)) {
-                    // support for schema default values
-                    $sanitized[$field] = $field_schema['default'] ?? $default[$field] ?? null;
-                } else {
-                    $sanitized[$field] = $value;
-
-                    // support for array enums
-                    if ($field_schema['type'] === 'array' && isset($field_schema['enum']) && is_array($field_schema['enum'])) {
-                        $value = array_values(
-                            array_filter($value, static function ($item) use (
-                                $field_schema
-                            ) {
-                                return in_array($item, $field_schema['enum'], true);
-                            })
-                        );
-                    }
-                }
-            }
+            $data = wpct_plugin_validate_with_schema($data, $schema);
 
             $full_name = $setting->full_name();
             add_action(
@@ -142,61 +110,7 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
             );
 
             $setting->flush();
-            return $sanitized;
-        }
-
-        /**
-         * Loop over validation error params and replace its setting values by schema defaults.
-         *
-         * @param mixed $value Validation target value.
-         * @param array $schema Value schema.
-         * @param WP_Error $error Validation error.
-         *
-         * @return mixed
-         */
-        private static function replace_invalid_with_defaults($value, $schema, $error)
-        {
-            if ($default = $field_schema['default'] ?? null) {
-                return $default;
-            }
-
-            $revalidate = false;
-            foreach (array_keys($error->errors) as $error_code) {
-                if (!isset($error->error_data[$error_code])) {
-                    continue;
-                }
-
-                $error_data = $error->error_data[$error_code];
-                if (empty($error_data['param'])) {
-                    return $value;
-                }
-
-                preg_match_all('/\[([^\]+)\]/', $error_data['param'], $matches);
-                $keys = $matches[1];
-
-                $parent = null;
-                $leaf = &$value;
-                $leaf_schema = $schema;
-                foreach ($keys as $key) {
-                    $parent = &$leaf;
-                    $leaf = &$parent[$key];
-                    $leaf_schema = $leaf_schema['properties'][$key];
-                }
-
-                if ($default = $leaf_schema['default'] ?? null) {
-                    $parent[$key] = $default;
-                    $revalidate = true;
-                }
-            }
-
-            if ($revalidate) {
-                $is_valid = rest_validate_value_from_schema($value, $schema);
-                if (is_wp_error($is_valid)) {
-                    $value = self::replace_invalid_with_defaults($value, $schema, $is_valid);
-                }
-            }
-
-            return $value;
+            return $data;
         }
 
         /**
