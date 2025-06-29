@@ -91,7 +91,8 @@ function wpct_plugin_validate_with_schema($data, $schema, $name = 'Data')
                     $data[$prop] = $val;
                 }
             } elseif ($additionalProperties === false) {
-                return new WP_Error('rest_additional_properties_forbidden', "{$prop} is not a valid property of {$name}", ['value' => $data]);
+                unset($data[$prop]);
+                // return new WP_Error('rest_additional_properties_forbidden', "{$prop} is not a valid property of {$name}", ['value' => $data]);
             }
         }
 
