@@ -73,11 +73,6 @@ function wpct_plugin_validate_with_schema($data, $schema, $name = 'Data')
         }
 
         foreach ($data as $prop => $val) {
-            $is_required = array_search($prop, $required, true);
-            if (is_int($is_required)) {
-                array_splice($required, $is_required, 1);
-            }
-
             $prop_schema = $props[$prop] ?? rest_find_matching_pattern_property_schema($prop, $schema);
             if ($prop_schema) {
                 $val = wpct_plugin_validate_with_schema($val, $prop_schema, $name . '.' . $prop);
@@ -88,6 +83,11 @@ function wpct_plugin_validate_with_schema($data, $schema, $name = 'Data')
                         return $error;
                     }
                 } else {
+                    $is_required = array_search($prop, $required, true);
+                    if (is_int($is_required)) {
+                        array_splice($required, $is_required, 1);
+                    }
+
                     $data[$prop] = $val;
                 }
             } elseif ($additionalProperties === false) {
