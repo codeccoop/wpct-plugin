@@ -83,12 +83,12 @@ function wpct_plugin_validate_with_schema($data, $schema, $name = 'Data')
                         return $error;
                     }
                 } else {
-                    $is_required = array_search($prop, $required, true);
-                    if (is_int($is_required)) {
-                        array_splice($required, $is_required, 1);
-                    }
-
                     $data[$prop] = $val;
+                }
+
+                $is_required = array_search($prop, $required, true);
+                if (is_int($is_required)) {
+                    array_splice($required, $is_required, 1);
                 }
             } elseif ($additionalProperties === false) {
                 unset($data[$prop]);
