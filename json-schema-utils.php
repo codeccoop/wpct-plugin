@@ -1,5 +1,9 @@
 <?php
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 /**
  * Applies validation and sanitization to data based on json schemas.
  *
@@ -8,32 +12,32 @@
  *
  * @return array|WP_Error Validation result.
  */
-function wpct_plugin_validate_with_schema($data, $schema, $name = 'Data')
+function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
 {
-    if (!isset($schema['type'])) {
-        return new WP_Error('rest_invalid_schema', '`type` is a required attribute of a schema', $schema);
-    }
-
     if (isset($schema['anyOf'])) {
-        $matching_schema = rest_find_any_matching_schema($data, $schema);
+        $matching_schema = rest_find_any_matching_schema($data, $schema, $name);
         if (is_wp_error($matching_schema)) {
             return $matching_schema;
         }
 
         if (!isset($schema['type']) && isset($matching_schema['type'])) {
-            $schema['type'] = $matching_schema['type'];
+            $schema = $matching_schema;
         }
     }
 
     if (isset($schema['oneOf'])) {
-        $matching_schema = rest_find_one_matching_schema($data, $schema);
+        $matching_schema = rest_find_one_matching_schema($data, $schema, $name);
         if (is_wp_error($matching_schema)) {
             return $matching_schema;
         }
 
         if (!isset($schema['type']) && isset($matching_schema['type'])) {
-            $schema['type'] = $matching_schema['type'];
+            $schema = $matching_schema;
         }
+    }
+
+    if (!isset($schema['type'])) {
+        return new WP_Error('rest_invalid_schema', '`type` is a required attribute of a schema', $schema);
     }
 
     if (is_array($schema['type'])) {
@@ -73,9 +77,9 @@ function wpct_plugin_validate_with_schema($data, $schema, $name = 'Data')
         }
 
         foreach ($data as $prop => $val) {
-            $prop_schema = $props[$prop] ?? rest_find_matching_pattern_property_schema($prop, $schema);
+            $prop_schema = $props[$prop] ?? rest_find_matching_pattern_property_schema($prop, $schema, $name . '.' . $prop);
             if ($prop_schema) {
-                $val = wpct_plugin_validate_with_schema($val, $prop_schema, $name . '.' . $prop);
+                $val = wpct_plugin_sanitize_with_schema($val, $prop_schema, $name . '.' . $prop);
                 if ($error = is_wp_error($val) ? $val : null) {
                     if (isset($props[$prop]['default'])) {
                         $data[$prop] = $props[$prop]['default'];
@@ -169,7 +173,7 @@ function wpct_plugin_validate_with_schema($data, $schema, $name = 'Data')
         $i = 0;
         while ($i < count($data)) {
             if (isset($items[$i])) {
-                $val = wpct_plugin_validate_with_schema($data[$i], $items[$i], $name . "[{$i}]");
+                $val = wpct_plugin_sanitize_with_schema($data[$i], $items[$i], $name . "[{$i}]");
                 if (is_wp_error($val)) {
                     return $val;
                 }
