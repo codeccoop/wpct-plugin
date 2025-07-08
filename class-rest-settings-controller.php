@@ -7,7 +7,7 @@ use WP_Error;
 use WP_REST_Server;
 
 if (!defined('ABSPATH')) {
-    exit();
+    exit;
 }
 
 if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
@@ -51,9 +51,35 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
          *
          * @return WP_Error
          */
-        final protected static function error($code, $message, $data)
+        final protected static function error($code, $message = '', $status = 500, $data = [])
         {
+            $data = array_merge($data, ['status' => $status]);
             return new WP_Error((string) $code, $message, $data);
+        }
+
+        final protected static function bad_request($message = '', $data = [])
+        {
+            return self::error('bad_request', $message, 400, $data);
+        }
+
+        final protected static function not_found($message = '', $data = [])
+        {
+            return self::error('not_found', $message, 404, $data);
+        }
+
+        final protected static function unauthorized($message = '', $data = [])
+        {
+            return self::error('unauthorized', $message, 401, $data);
+        }
+
+        final protected static function forbidden($message = '', $data = [])
+        {
+            return self::error('forbidden', $message, 403, $data);
+        }
+
+        final protected static function internal_server_error($message = '', $data = [])
+        {
+            return self::error('internal_server_error', $message, 500, $data);
         }
 
         /**
@@ -74,6 +100,10 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
                 'wpct_plugin_registered_settings',
                 function ($settings, $group) {
                     if ($group === $this->group) {
+                        if ($settings instanceof Setting) {
+                            $settings = [$settings];
+                        }
+
                         $this->settings = $settings;
                     }
                 },
@@ -117,24 +147,27 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
                     'callback' => static function () {
                         return self::get_settings();
                     },
-                    'permission_callback' => static function () {
-                        return self::permission_callback();
-                    },
+					'permission_callback' => [self::class, 'permission_callback'],
                 ],
                 [
                     'methods' => WP_REST_Server::CREATABLE,
                     'callback' => static function ($request) {
                         return self::set_settings($request);
                     },
-                    'permission_callback' => static function () {
-                        return self::permission_callback();
-                    },
+					'permission_callback' => [self::class, 'permission_callback'],
                     'args' => self::schema()['properties'],
+                ],
+                [
+                    'methods' => WP_REST_Server::DELETABLE,
+                    'callback' => static function () {
+                        return self::delete_settings();
+                    },
+					'permission_callback' => [self::class, 'permission_callback'],
                 ],
                 'schema' => static function () {
                     return self::schema();
                 },
-                'allow_batch' => ['v1' => false],
+                // 'allow_batch' => ['v1' => false],
             ]);
         }
 
@@ -153,7 +186,7 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
                     $setting_schema = $setting->schema();
                     unset($setting_schema['additionalProperties']);
                     $schema['properties'][
-                        $setting->full_name()
+                        $setting->name()
                     ] = $setting_schema;
                     return $schema;
                 },
@@ -175,8 +208,8 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
         {
             $data = [];
             $settings = self::settings();
-            foreach ($settings as $name => $setting) {
-                $data[$name] = $setting->data();
+            foreach ($settings as $setting) {
+                $data[$setting->name()] = $setting->data();
             }
 
             return $data;
@@ -200,21 +233,28 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
                         continue;
                     }
 
-                    $from = $setting->data();
                     $to = $data[$setting->name()];
-                    foreach (array_keys($from) as $key) {
-                        $to[$key] = isset($to[$key]) ? $to[$key] : $from[$key];
-                    }
-                    update_option($setting->full_name(), $to);
+                    $setting->update($to);
                 }
                 return ['success' => true];
             } catch (Error $e) {
                 return self::error(
                     'internal_server_error',
                     $e->getMessage(),
+                    500,
                     $data
                 );
             }
+        }
+
+        private static function delete_settings()
+        {
+            $settings = self::settings();
+            foreach ($settings as $setting) {
+                $setting->delete();
+            }
+
+            return ['success' => true];
         }
 
         /**

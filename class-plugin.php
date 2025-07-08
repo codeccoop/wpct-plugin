@@ -5,7 +5,7 @@ namespace WPCT_PLUGIN;
 use ReflectionClass;
 
 if (!defined('ABSPATH')) {
-    exit();
+    exit;
 }
 
 if (!class_exists('\WPCT_PLUGIN\Plugin')) {
@@ -24,21 +24,21 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
          *
          * @var string
          */
-        protected static $menu_class = '\WPCT_PLUGIN\Menu';
+        protected const menu_class = '\WPCT_PLUGIN\Menu';
 
         /**
          * Handles plugin's settings store class name.
          *
          * @var string
          */
-        protected static $store_class = '\WPCT_PLUGIN\Settings_Store';
+        protected const store_class = '\WPCT_PLUGIN\Settings_Store';
 
         /**
          * Handles plugin's settings class name.
          *
          * @var string
          */
-        protected static $settings_form_class = '\WPCT_PLUGIN\Settings_Form';
+        protected const settings_form_class = '\WPCT_PLUGIN\Settings_Form';
 
         /**
          * Handles plugin's headers data.
@@ -115,40 +115,33 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
          */
         protected function construct(...$args)
         {
-            if (isset(static::$store_class)) {
-                $this->store = static::$store_class::get_instance(
-                    static::slug()
+            $this->store = static::store_class::get_instance(
+                static::slug()
+            );
+
+            if (static::is_active()) {
+                $this->menu = static::menu_class::get_instance(
+                    static::name(),
+                    static::slug(),
+                    $this->store
                 );
 
-                if (static::is_active()) {
-                    if (isset(static::$menu_class)) {
-                        $this->menu = static::$menu_class::get_instance(
-                            static::name(),
-                            static::slug(),
-                            $this->store
-                        );
-
-                        $this->settings_form = static::$settings_form_class::get_instance($this->store);
-                    }
-                }
+                $this->settings_form = static::settings_form_class::get_instance($this->store);
             }
 
             add_action('init', function () {
-                static::init();
                 static::load_textdomain();
+                static::init();
             });
 
             add_filter(
                 'plugin_action_links',
                 static function ($links, $file) {
-                    if (!isset(static::$menu_class)) {
+                    if (!static::is_active()) {
                         return $links;
                     }
 
-                    $reflector = new ReflectionClass(static::class);
-                    $__FILE__ = $reflector->getFileName();
-
-                    if ($file !== plugin_basename($__FILE__)) {
+                    if ($file !== static::index()) {
                         return $links;
                     }
 
@@ -205,9 +198,8 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
          */
         final public static function index()
         {
-            $reflector = new ReflectionClass(static::class);
-            $__FILE__ = $reflector->getFileName();
-            return plugin_basename($__FILE__);
+            $reflection = new ReflectionClass(static::class);
+            return plugin_basename($reflection->getFileName());
         }
 
         /**
@@ -217,8 +209,19 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
          */
         final public static function path()
         {
-            $reflector = new ReflectionClass(static::class);
-            return plugin_dir_path($reflector->getFileName());
+            $reflection = new ReflectionClass(static::class);
+            return plugin_dir_path($reflection->getFileName());
+        }
+
+        /**
+         * Plugin's public url getter.
+         *
+         * @return string
+         */
+        final public static function url()
+        {
+            $reflection = new ReflectionClass(static::class);
+            return plugin_dir_url($reflection->getFileName());
         }
 
         /**
@@ -304,14 +307,14 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
             static::get_instance()->menu;
         }
 
-        final public static function settings()
+        final public static function store()
         {
             $store = static::get_instance()->store;
             if (empty($store)) {
                 return;
             }
 
-            return $store::settings();
+            return $store;
         }
 
         final public static function setting($name)

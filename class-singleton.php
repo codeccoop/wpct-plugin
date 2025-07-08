@@ -5,7 +5,7 @@ namespace WPCT_PLUGIN;
 use Error;
 
 if (!defined('ABSPATH')) {
-    exit();
+    exit;
 }
 
 if (!class_exists('\WPCT_PLUGIN\Singleton')):
@@ -30,7 +30,9 @@ if (!class_exists('\WPCT_PLUGIN\Singleton')):
         /**
          * Prevent class clonning.
          */
-        final public function __clone() {}
+        final public function __clone()
+        {
+        }
 
         /**
          * Prevent class serialization.

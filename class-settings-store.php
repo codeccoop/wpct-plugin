@@ -3,7 +3,7 @@
 namespace WPCT_PLUGIN;
 
 if (!defined('ABSPATH')) {
-    exit();
+    exit;
 }
 
 if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
@@ -26,7 +26,7 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
         protected static $rest_controller_class = '\WPCT_PLUGIN\REST_Settings_Controller';
 
         /**
-         * Handle settings group name.
+         * Handle settings' group name.
          *
          * @var string
          */
@@ -39,86 +39,62 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
          */
         private $store = [];
 
-        private static function store($setting_name, $setting)
+        private static function _store_setting($setting_name, $setting)
         {
             static::get_instance()->store[$setting_name] = $setting;
         }
 
-        /**
-         * Register settings method.
-         */
-        public static function config()
+        final public static function use_setter($name, $setter, $priority = 10)
         {
-            return [];
+            if ($setting = static::setting($name)) {
+                $setting->use_setter($setter, $priority);
+            }
         }
 
-        /**
-         * Validates setting data before database inserts.
-         *
-         * @param array $data Setting data.
-         * @param Setting $setting Setting instance.
-         *
-         * @return array $value Validated setting data.
-         */
-        protected static function validate_setting($data, $setting)
+        final public static function use_getter($name, $getter, $priority = 10)
         {
-            return $data;
+            if ($setting = static::setting($name)) {
+                $setting->use_getter($getter, $priority);
+            }
         }
 
-        /**
-         * Private setting sanitization method.
-         *
-         * @param array $data Setting data.
-         * @param string $name Setting name.
-         *
-         * @return array Sanitized data.
-         */
-        private static function sanitize_setting($data, $name)
+        final public static function enqueue($callback)
         {
-            $instance = static::get_instance();
-
-            // Prevent double sanitization
-            if ($instance->sanitizing === $name) {
-                return $data;
+            if (!is_callable($callback)) {
+                return;
             }
 
-            $instance->sanitizing = $name;
-            $setting = static::setting($name);
-            $schema = $setting->schema();
+            add_filter(
+                'wpct_plugin_register_settings',
+                static function ($settings, $group) use ($callback) {
+                    if (static::group() === $group) {
+                        $settings = $callback($settings);
+                    }
 
-            $data = static::validate_setting($data, $setting);
-            $data = apply_filters('wpct_plugin_validate_setting', $data, $setting);
-            $data = wpct_plugin_validate_with_schema($data, $schema);
-
-            $full_name = $setting->full_name();
-            add_action(
-                "add_option_{$full_name}",
-                static function () use ($instance) {
-                    $instance->sanitizing = null;
+                    return $settings;
                 },
                 10,
-                0
+                2
             );
-
-            add_action(
-                "update_option_{$full_name}",
-                static function () use ($instance) {
-                    $instance->sanitizing = null;
-                },
-                10,
-                0
-            );
-
-            $setting->flush();
-            return $data;
         }
 
-        /**
-         * Handles current sanitizing setting name to prevent double sanitization loops.
-         *
-         * @var string|null
-         */
-        private $sanitizing = null;
+        final public static function ready($callback)
+        {
+            if (!is_callable($callback)) {
+                return;
+            }
+
+            add_filter(
+                'wpct_plugin_registered_settings',
+                function ($settings, $group, $store) use ($callback) {
+                    if (static::group() === $group) {
+                        $callback($store);
+                    }
+                },
+                10,
+                3
+            );
+        }
 
         /**
          * Class constructor. Store the group name and hooks to pre_update_option.
@@ -134,12 +110,12 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
 
             add_action(
                 'init',
-                static function () use ($group) {
+                function () {
                     $settings = static::register_settings();
-                    do_action('wpct_plugin_registered_settings', $settings, $group);
+                    do_action('wpct_plugin_registered_settings', $settings, $this->group, $this);
                 },
                 10,
-                0
+                5
             );
         }
 
@@ -158,14 +134,14 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
          *
          * @return array Group settings.
          */
-        final public static function settings()
+        final public static function store()
         {
-            return static::get_instance()->store;
+            return static::get_instance()->store ?: [];
         }
 
         final public static function setting($name)
         {
-            $store = static::settings();
+            $store = static::store();
             if (empty($store)) {
                 return;
             }
@@ -178,51 +154,46 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
          *
          * @return array List with setting instances.
          */
-        private static function register_settings()
+        protected static function register_settings()
         {
-            $config = apply_filters(
-                'wpct_plugin_settings_config',
-                static::config(),
-                static::group()
+            $group = static::group();
+
+            $schemas = apply_filters(
+                'wpct_plugin_register_settings',
+                [],
+                $group
             );
 
             $settings = [];
-            foreach ($config as $setting_config) {
-                $group = static::group();
-                [$name, $schema, $default] = $setting_config;
-
-                if ($setting = static::setting($name)) {
-                    $settings[$setting->name()] = $setting;
-                } else {
-                    $setting = new Setting($group, $name, $default, [
-                        '$id' => $group . '_' . $name,
-                        '$schema' => 'http://json-schema.org/draft-04/schema#',
-                        'title' => "Setting {$name} of {$group}",
-                        'type' => 'object',
-                        'properties' => $schema,
-                        'required' => array_keys($schema),
-                        'additionalProperties' => false,
-                    ]);
-
-                    $setting_name = $setting->full_name();
-
-                    // Register setting
-                    register_setting($setting_name, $setting_name, [
-                        'type' => 'object',
-                        'show_in_rest' => [
-                            'name' => $setting_name,
-                            'schema' => $setting->schema(),
-                        ],
-                        'sanitize_callback' => function ($value) use ($name) {
-                            return static::sanitize_setting($value, $name);
-                        },
-                        'default' => $setting->default(),
-                    ]);
-
-                    static::store($name, $setting);
+            foreach ($schemas as $schema) {
+                if (!is_array($schema) || !is_string($schema['name'] ?? null)) {
+                    continue;
                 }
 
-                $settings[$setting->name()] = $setting;
+                $name = $schema['name'];
+
+                if ($setting = static::setting($name)) {
+                    $settings[] = $setting;
+                    continue;
+                }
+
+                $schema = array_merge([
+                    '$id' => $group . '_' . $name,
+                    '$schema' => 'http://json-schema.org/draft-04/schema#',
+                    'title' => "Setting {$name} of {$group}",
+                    'type' => 'object',
+                    'properties' => [],
+                    'required' => [],
+                    'additionalProperties' => false,
+                    'default' => [],
+                ], $schema);
+
+                $default = is_array($schema['default']) ? $schema['default'] : [];
+
+                $setting = new Setting($group, $name, $default, $schema);
+                static::_store_setting($name, $setting);
+
+                $settings[] = $setting;
             }
 
             return $settings;

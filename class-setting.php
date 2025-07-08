@@ -3,7 +3,7 @@
 namespace WPCT_PLUGIN;
 
 if (!defined('ABSPATH')) {
-    exit();
+    exit;
 }
 
 if (!class_exists('\WPCT_PLUGIN\Setting')) {
@@ -47,52 +47,87 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
          */
         private $data = null;
 
+        private $sanitizing = false;
+
         /**
          * Stores setting data and bind itself to wp option hooks to update its data.
          *
          * @param string $group Setting group.
          * @param string $name Setting name.
-         * @param array $data Setting data.
+         * @param array $default Setting default.
          * @param array $schema Setting schema.
          */
-        public function __construct($group, $name, $data, $schema)
+        public function __construct($group, $name, $default, $schema)
         {
             $this->group = $group;
             $this->name = $name;
-            $this->default = apply_filters(
-                'wpct_plugin_setting_default',
-                $data,
-                $this->full_name()
-            );
             $this->schema = $schema;
 
-            $full_name = $this->full_name();
+            $option = $this->option();
+
+            register_setting('options', $option, [
+                'type' => 'object',
+                'show_in_rest' => false,
+                'sanitize_callback' => function ($data) {
+                    return $this->sanitize($data);
+                },
+                'default' => $default,
+            ]);
 
             add_action(
-                "add_option_{$full_name}",
+                "add_option_{$option}",
                 function ($option, $data) {
                     $this->data = $data;
+                    $this->sanitizing = false;
                 },
                 5,
                 2
             );
 
             add_action(
-                "update_option_{$full_name}",
+                "update_option_{$option}",
                 function ($from, $to) {
                     $this->data = $to;
+                    $this->sanitizing = false;
                 },
                 5,
                 2
             );
 
             add_action(
-                "delete_option_{$full_name}",
+                "delete_option_{$option}",
                 function () {
                     $this->data = null;
+                    $this->sanitizing = false;
                 },
                 5,
                 0
+            );
+
+            add_filter(
+                "option_{$option}",
+                function ($data) {
+                    if (!is_array($data)) {
+                        return [];
+                    }
+
+                    return $data;
+                },
+                0,
+                1
+            );
+
+            add_filter(
+                "default_option_{$option}",
+                function ($data) {
+                    if (!is_array($data)) {
+                        return [];
+                    }
+
+                    return $data;
+                },
+                0,
+                1,
             );
         }
 
@@ -105,21 +140,15 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
          */
         public function __get($field)
         {
-            $data = apply_filters(
-                'wpct_plugin_setting_data',
-                $this->data(),
-                $this->full_name()
-            );
+            $data = $this->data();
             return $data[$field] ?? null;
         }
 
         public function __set($field, $value)
         {
             $data = $this->data();
-            if (isset($data[$field])) {
-                $data[$field] = $value;
-                $this->update($data);
-            }
+            $data[$field] = $value;
+            $this->update($data);
         }
 
         /**
@@ -147,7 +176,7 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
          *
          * @return string Setting full name.
          */
-        public function full_name()
+        public function option()
         {
             return $this->group . '_' . $this->name;
         }
@@ -161,7 +190,13 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
          */
         public function schema($field = null)
         {
-            return $this->proxy('schema', $field);
+            $schema = $this->schema;
+
+            if ($field === null) {
+                return $schema;
+            }
+
+            return $schema['properties'][$field] ?? null;
         }
 
         /**
@@ -174,22 +209,14 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
         public function data($field = null)
         {
             if ($this->data === null) {
-                $this->data = get_option($this->full_name(), $this->default);
+                $this->data = get_option($this->option());
             }
 
-            return $this->proxy('data', $field);
-        }
+            if ($field === null) {
+                return $this->data;
+            }
 
-        /**
-         * Setting's default value getter.
-         *
-         * @param string $field Field name, optional.
-         *
-         * @return mixed
-         */
-        public function default($field = null)
-        {
-            return $this->proxy('default', $field);
+            return $this->data[$field] ?? null;
         }
 
         /**
@@ -201,7 +228,7 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
          */
         public function add($data)
         {
-            return add_option($this->full_name(), $data);
+            return add_option($this->option(), $data);
         }
 
         /**
@@ -213,7 +240,7 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
          */
         public function update($data)
         {
-            return update_option($this->full_name(), $data);
+            return update_option($this->option(), $data);
         }
 
         /**
@@ -223,7 +250,7 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
          */
         public function delete()
         {
-            return delete_option($this->full_name());
+            return delete_option($this->option());
         }
 
         public function flush()
@@ -231,45 +258,32 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
             $this->data = null;
         }
 
-        /**
-         * Proxies setting arrays' with isset checks.
-         *
-         * @param string $targert Target data array.
-         * @param string $field Field name.
-         *
-         * @return mixed Data if no field is defined, field value otherwise, or null.
-         */
-        private function proxy($target, $field = null)
+        private function sanitize($data)
         {
-            if (!isset($this->$target)) {
-                return;
-            }
-
-            $data = $this->$target;
-
-            if ($target === 'data') {
-                $data = apply_filters(
-                    'wpct_plugin_setting_data',
-                    $data,
-                    $this->full_name()
-                );
-            }
-
-            if ($field === null) {
+            if ($this->sanitizing === true) {
                 return $data;
             }
 
-            if ($target === 'schema') {
-                $data = $data['properties'];
+            $this->sanitizing = true;
+            $data = apply_filters('wpct_plugin_sanitize_setting', $data, $this);
+            return wpct_plugin_sanitize_with_schema($data, $this->schema());
+        }
+
+        public function use_getter($getter, $p = 10)
+        {
+            if (is_callable($getter)) {
+                $option = $this->option();
+                add_filter("option_{$option}", $getter, $p, 1);
+                add_filter("default_option_{$option}", $getter, $p, 1);
             }
+        }
 
-            $value = $data[$field] ?? null;
-
-            if ($value === null && $target === 'data') {
-                $value = $this->default[$field] ?? $value;
+        public function use_setter($setter, $p = 10)
+        {
+            if (is_callable($setter)) {
+                $option = $this->option();
+                add_filter("sanitize_option_{$option}", $setter, $p, 1);
             }
-
-            return $value;
         }
     }
 }

@@ -3,7 +3,7 @@
 namespace WPCT_PLUGIN;
 
 if (!defined('ABSPATH')) {
-    exit();
+    exit;
 }
 
 if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
@@ -70,11 +70,8 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
 
             add_action(
                 'admin_init',
-                static function () {
-                    $settings_store = static::store()::settings();
-
-                    foreach ($settings_store as $setting) {
-                        $setting_name = $setting->full_name();
+                static function () use ($store) {
+                    foreach ($store::store() as $setting_name => $setting) {
                         $section_name = $setting_name . '_section';
                         $section_label = esc_html(
                             static::setting_title($setting_name)
@@ -90,8 +87,8 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
                             $setting_name,
                         );
 
-                        $default = $setting->default();
-                        foreach (array_keys($default) as $field) {
+                        $fields = array_keys($setting->schema()['properties']);
+                        foreach ($fields as $field) {
                             static::add_setting_field($setting, $field);
                         }
                     }
@@ -131,14 +128,14 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
          */
         private static function add_setting_field($setting, $field)
         {
-            $setting_name = $setting->full_name();
+            $setting_name = $setting->option();
             $field_label = esc_html(static::field_label($field, $setting_name));
 
             add_settings_field(
                 $field,
                 $field_label,
                 static function () use ($setting, $field) {
-                    $setting_name = $setting->full_name();
+                    $setting_name = $setting->option();
                     $schema = $setting->schema($field);
                     $value = $setting->data($field);
 
