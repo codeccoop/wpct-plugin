@@ -23,7 +23,7 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
          *
          * @var string
          */
-        protected static $rest_controller_class = '\WPCT_PLUGIN\REST_Settings_Controller';
+        protected const rest_controller_class = '\WPCT_PLUGIN\REST_Settings_Controller';
 
         /**
          * Handle settings' group name.
@@ -113,7 +113,7 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
             [$group] = $args;
             $this->group = $group;
 
-            static::$rest_controller_class::setup($group);
+            static::rest_controller_class::setup($group);
 
             add_action(
                 'init',
