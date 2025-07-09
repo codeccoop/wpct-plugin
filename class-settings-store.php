@@ -137,15 +137,30 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
         }
 
         /**
-         * Return group settings instances.
+         * Instance's store getter
          *
-         * @return array Group settings.
+         * @return array
          */
         final public static function store()
         {
             return static::get_instance()->store ?: [];
         }
 
+        /**
+         * Instance's store settings collection getter.
+         *
+         * @return Setting[]
+         */
+        final public static function settings()
+        {
+            return array_values(static::store());
+        }
+
+        /**
+         * Instance's settings getter.
+         *
+         * @return Setting|null
+         */
         final public static function setting($name)
         {
             $store = static::store();
@@ -161,7 +176,7 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
          *
          * @return array List with setting instances.
          */
-        protected static function register_settings()
+        private static function register_settings()
         {
             $group = static::group();
 

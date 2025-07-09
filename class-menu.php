@@ -83,7 +83,7 @@ if (!class_exists('\WPCT_PLUGIN\Menu')) {
 
             $tabs = [];
             foreach ($store_settings as $setting) {
-                $setting_name = $setting->full_name();
+                $setting_name = $setting->option();
                 $tabs[$setting_name] = esc_html(
                     static::tab_title($setting_name)
                 );

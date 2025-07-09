@@ -71,15 +71,16 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
             add_action(
                 'admin_init',
                 static function () use ($store) {
-                    foreach ($store::store() as $setting_name => $setting) {
+                    foreach ($store::settings() as $setting) {
+                        $setting_name = $setting->option();
                         $section_name = $setting_name . '_section';
-                        $section_label = esc_html(
+                        $section_title = esc_html(
                             static::setting_title($setting_name)
                         );
 
                         add_settings_section(
                             $section_name,
-                            $section_label,
+                            $section_title,
                             static function () use ($setting_name) {
                                 $description = static::setting_description($setting_name);
                                 printf('<p>%s/p>', esc_html($description));
