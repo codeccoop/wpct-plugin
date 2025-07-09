@@ -227,6 +227,8 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
                     $options
                 );
             } elseif ($schema['type'] === 'array' && isset($schema['enum'])) {
+                $value = (array) $value;
+
                 $options = implode(
                     '',
                     array_map(function ($opt) use ($value) {
@@ -281,6 +283,7 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
 
             $fieldset .= '>';
 
+            $value = (array) $value;
             foreach (array_keys($value) as $key) {
                 $fieldset .= '<tr>';
 

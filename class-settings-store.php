@@ -199,13 +199,17 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
                     continue;
                 }
 
+                if (isset($schema['properties']) && is_array($schema['properties'])) {
+                    $default_required = array_keys($schema['properties']);
+                }
+
                 $schema = array_merge([
                     '$id' => $group . '_' . $name,
                     '$schema' => 'http://json-schema.org/draft-04/schema#',
                     'title' => "Setting {$name} of {$group}",
                     'type' => 'object',
                     'properties' => [],
-                    'required' => [],
+                    'required' => $default_required ?? [],
                     'additionalProperties' => false,
                     'default' => [],
                 ], $schema);

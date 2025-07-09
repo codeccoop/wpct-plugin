@@ -102,11 +102,13 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
 
         if (count($required)) {
             foreach ($required as $prop) {
-                if (!isset($props[$prop]['default'])) {
+                if (isset($props[$prop]['default'])) {
+                    $data[$prop] = $props[$prop]['default'];
+                } elseif ($props[$prop]['type'] === 'boolean') {
+                    $data[$prop] = false;
+                } else {
                     return new WP_Error('rest_property_required', "{$prop} is required property of {$name}", ['value' => $data]);
                 }
-
-                $data[$prop] = $props[$prop]['default'];
             }
         }
 
@@ -114,6 +116,8 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
             if (isset($prop_schema['required']) && $prop_schema['required'] === true && !isset($data[$prop])) {
                 if (isset($prop_schema['default'])) {
                     $data[$prop] = $prop_schema['default'];
+                } elseif ($prop_schema['type'] === 'boolean') {
+                    $data[$prop] = false;
                 } else {
                     return new WP_Error('rest_property_required', "{$prop} is required property of {$name}", ['value' => $data]);
                 }
@@ -139,14 +143,14 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
 
         // support for array enums
         if (isset($schema['enum']) && is_array($schema['enum'])) {
-            $items = [];
+            $enum_items = [];
             foreach ($data as $item) {
                 if (in_array($item, $schema['enum'], true)) {
-                    $items[] = $item;
+                    $enum_items[] = $item;
                 }
             }
 
-            $data = $items;
+            $data = $enum_items;
         }
 
         if (count($data) > $maxItems) {
@@ -184,6 +188,8 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
         }
 
         return rest_sanitize_value_from_schema($data, $schema, $name);
+    } elseif ($schema['type'] === 'boolean') {
+        $data = (bool) $data;
     }
 
     $is_valid = rest_validate_value_from_schema($data, $schema, $name);

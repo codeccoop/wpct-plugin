@@ -2,6 +2,8 @@
 
 namespace WPCT_PLUGIN;
 
+use WP_Error;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -65,7 +67,7 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
 
             $option = $this->option();
 
-            register_setting('options', $option, [
+            register_setting($option, $option, [
                 'type' => 'object',
                 'show_in_rest' => false,
                 'sanitize_callback' => function ($data) {
@@ -258,6 +260,12 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
             $this->data = null;
         }
 
+        public function skip_updates()
+        {
+            remove_filter('pre_update_option_' . $this->option(), [$this, 'skip_updates'], 99, 0);
+            return $this->data();
+        }
+
         private function sanitize($data)
         {
             if ($this->sanitizing === true) {
@@ -266,7 +274,19 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
 
             $this->sanitizing = true;
             $data = apply_filters('wpct_plugin_sanitize_setting', $data, $this);
-            return wpct_plugin_sanitize_with_schema($data, $this->schema());
+            $data = wpct_plugin_sanitize_with_schema($data, $this->schema());
+
+            if (is_wp_error($data)) {
+                add_filter('pre_update_option_' . $this->option(), [$this, 'skip_updates'], 99, 0);
+                add_settings_error(
+                    $this->name(),
+                    esc_attr($this->option()),
+                    $data->get_error_message(),
+                    'error',
+                );
+            }
+
+            return $data;
         }
 
         public function use_getter($getter, $p = 10)
@@ -282,7 +302,13 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
         {
             if (is_callable($setter)) {
                 $option = $this->option();
-                add_filter("sanitize_option_{$option}", $setter, $p, 1);
+                add_filter("sanitize_option_{$option}", function ($data) use ($setter) {
+                    if (is_wp_error($data)) {
+                        return $data;
+                    }
+
+                    return $setter($data);
+                }, $p, 1);
             }
         }
 
