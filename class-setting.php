@@ -285,5 +285,13 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
                 add_filter("sanitize_option_{$option}", $setter, $p, 1);
             }
         }
+
+        public function use_cleaner($cleaner, $p = 10)
+        {
+            if (is_callable($cleaner)) {
+                $option = $this->option();
+                add_action("delete_option_{$option}", $cleaner, $p);
+            }
+        }
     }
 }

@@ -58,17 +58,24 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
             }
         }
 
-        final public static function enqueue($callback)
+        final public static function use_cleaner($name, $cleaner, $priority = 10)
         {
-            if (!is_callable($callback)) {
-                return;
+            if ($setting = static::setting($name)) {
+                $setting->use_cleaner($cleaner, $priority);
             }
+        }
 
+        final public static function register_setting($setting)
+        {
             add_filter(
                 'wpct_plugin_register_settings',
-                static function ($settings, $group) use ($callback) {
+                static function ($settings, $group) use ($setting) {
                     if (static::group() === $group) {
-                        $settings = $callback($settings);
+                        if (is_array($setting)) {
+                            $settings[] = $setting;
+                        } elseif ($filter = is_callable($setting) ? $setting : null) {
+                            $settings = $filter($settings);
+                        }
                     }
 
                     return $settings;
@@ -86,9 +93,9 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
 
             add_filter(
                 'wpct_plugin_registered_settings',
-                function ($settings, $group, $store) use ($callback) {
+                static function ($settings, $group, $store) use ($callback) {
                     if (static::group() === $group) {
-                        $callback($store);
+                        $callback($store, $group);
                     }
                 },
                 10,
