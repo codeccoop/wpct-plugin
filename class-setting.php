@@ -2,10 +2,8 @@
 
 namespace WPCT_PLUGIN;
 
-use WP_Error;
-
 if (!defined('ABSPATH')) {
-    exit;
+    exit();
 }
 
 if (!class_exists('\WPCT_PLUGIN\Setting')) {

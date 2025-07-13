@@ -3,11 +3,12 @@
 namespace WPCT_PLUGIN;
 
 use Error;
+use Exception;
 use WP_Error;
 use WP_REST_Server;
 
 if (!defined('ABSPATH')) {
-    exit;
+    exit();
 }
 
 if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
@@ -141,31 +142,40 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
             $namespace = self::namespace();
             $version = self::version();
 
+            $args = [];
+            $schema = self::schema();
+            foreach ($schema['properties'] as $prop => $prop_schema) {
+                $args[$prop] = $prop_schema;
+                $args[$prop]['sanitize_callback'] = fn ($data) => $data;
+                $args[$prop]['validate_callback'] = '__return_true';
+            }
+
             register_rest_route("{$namespace}/v{$version}", '/settings/', [
                 [
                     'methods' => WP_REST_Server::READABLE,
                     'callback' => static function () {
                         return self::get_settings();
                     },
-					'permission_callback' => [self::class, 'permission_callback'],
+                    'permission_callback' => [self::class, 'permission_callback'],
                 ],
                 [
                     'methods' => WP_REST_Server::CREATABLE,
                     'callback' => static function ($request) {
                         return self::set_settings($request);
                     },
-					'permission_callback' => [self::class, 'permission_callback'],
-                    'args' => self::schema()['properties'],
+                    'permission_callback' => [self::class, 'permission_callback'],
+                    'validate_callback' => '__return_true',
+                    'args' => $args,
                 ],
                 [
                     'methods' => WP_REST_Server::DELETABLE,
                     'callback' => static function () {
                         return self::delete_settings();
                     },
-					'permission_callback' => [self::class, 'permission_callback'],
+                    'permission_callback' => [self::class, 'permission_callback'],
                 ],
                 'schema' => static function () {
-                    return self::schema();
+                    return wpct_plugin_prune_rest_private_schema_properties(self::schema());
                 },
                 // 'allow_batch' => ['v1' => false],
             ]);
@@ -180,23 +190,18 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
         {
             $settings = self::settings();
 
-            return array_reduce(
-                $settings,
-                static function ($schema, $setting) {
-                    $setting_schema = $setting->schema();
-                    unset($setting_schema['additionalProperties']);
-                    $schema['properties'][
-                        $setting->name()
-                    ] = $setting_schema;
-                    return $schema;
-                },
-                [
-                    '$schema' => 'http://json-schema.org/draft-04/schema#',
-                    'title' => self::group(),
-                    'type' => 'object',
-                    'properties' => [],
-                ]
-            );
+            $properties = [];
+            foreach ($settings as $setting) {
+                $properties[$setting->name()] = $setting->schema();
+            }
+
+            return [
+                '$schema' => 'http://json-schema.org/draft-04/schema#',
+                'title' => self::group(),
+                'type' => 'object',
+                'properties' => $properties,
+		'additionalProperties' => false,
+            ];
         }
 
         /**
@@ -236,8 +241,9 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
                     $to = $data[$setting->name()];
                     $setting->update($to);
                 }
+
                 return ['success' => true];
-            } catch (Error $e) {
+            } catch (Error | Exception $e) {
                 return self::error(
                     'internal_server_error',
                     $e->getMessage(),

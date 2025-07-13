@@ -1,7 +1,7 @@
 <?php
 
 if (!defined('ABSPATH')) {
-    exit;
+    exit();
 }
 
 /**
@@ -49,6 +49,37 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
         }
     }
 
+    if ($sanitize_callback = $schema['sanitize_callback'] ?? null) {
+        if (is_callable($sanitize_callback)) {
+            $data = $sanitize_callback($data, $schema, $name);
+
+            if (!$data || is_wp_error($data)) {
+                if (isset($schema['default'])) {
+                    return $schema['default'];
+                }
+
+                return new WP_Error('rest_invalid_value', "{$name} is invalid");
+            }
+
+            return $data;
+        }
+    }
+
+    if ($validate_callback = $schema['validate_callback'] ?? null) {
+        if (is_callable($validate_callback)) {
+            $is_valid = $validate_callback($data, $schema, $name);
+            if (!$is_valid || is_wp_error($is_valid)) {
+                if (isset($schema['default'])) {
+                    return $schema['default'];
+                }
+
+                return new WP_Error('rest_invalid_value', "{$name} is invalid");
+            }
+
+            return $data;
+        }
+    }
+
     if ($schema['type'] === 'object') {
         if (!rest_is_object($data)) {
             return new WP_Error('rest_invalid_type', "{$name} is not of type object", $data);
@@ -62,27 +93,17 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
         $minProps = $schema['minProps'] ?? 0;
         $maxProps = $schema['maxProps'] ?? INF;
 
-        if (count($data) > $maxProps) {
-            return new WP_Error(
-                'rest_too_few_properties',
-                "{$name} has less properties than required",
-                ['minProps' => $minProps, 'value' => $data],
-            );
-        } elseif (count($data) < $minProps) {
-            return new WP_Error(
-                'rest_too_many_properties',
-                "{$name} exceed the allowed number of properties",
-                ['maxProps' => $maxProps, 'value' => $data],
-            );
-        }
-
         foreach ($data as $prop => $val) {
             $prop_schema = $props[$prop] ?? rest_find_matching_pattern_property_schema($prop, $schema, $name . '.' . $prop);
             if ($prop_schema) {
+                $is_required = in_array($prop, $required, true) || ($prop_schema['required'] ?? false) === true;
+
                 $val = wpct_plugin_sanitize_with_schema($val, $prop_schema, $name . '.' . $prop);
                 if ($error = is_wp_error($val) ? $val : null) {
                     if (isset($props[$prop]['default'])) {
                         $data[$prop] = $props[$prop]['default'];
+                    } elseif (!$is_required) {
+                        unset($data[$prop]);
                     } else {
                         return $error;
                     }
@@ -90,9 +111,9 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
                     $data[$prop] = $val;
                 }
 
-                $is_required = array_search($prop, $required, true);
-                if (is_int($is_required)) {
-                    array_splice($required, $is_required, 1);
+                if ($is_required) {
+                    $index = array_search($prop, $required, true);
+                    array_splice($required, $index, 1);
                 }
             } elseif ($additionalProperties === false) {
                 unset($data[$prop]);
@@ -124,6 +145,20 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
             }
         }
 
+        if (count($data) > $maxProps) {
+            return new WP_Error(
+                'rest_too_few_properties',
+                "{$name} has less properties than required",
+                ['minProps' => $minProps, 'value' => $data],
+            );
+        } elseif (count($data) < $minProps) {
+            return new WP_Error(
+                'rest_too_many_properties',
+                "{$name} exceed the allowed number of properties",
+                ['maxProps' => $maxProps, 'value' => $data],
+            );
+        }
+
         return rest_sanitize_value_from_schema($data, $schema);
     } elseif ($schema['type'] === 'array') {
         if (!rest_is_array($data)) {
@@ -134,12 +169,8 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
 
         $items = $schema['items'] ?? [];
         $additionalItems = $data['additionalItems'] ?? true;
-        $minItems = $data['minItems'] ?? 0;
-        $maxItems = $data['maxItems'] ?? INF;
-
-        if (isset($schema['uniqueItems']) && !rest_validate_array_contains_unique_items($data)) {
-            return new WP_Error('rest_duplicate_items', "{$name} has duplicate items", ['value' => $data]);
-        }
+        $minItems = $schema['minItems'] ?? 0;
+        $maxItems = $schema['maxItems'] ?? INF;
 
         // support for array enums
         if (isset($schema['enum']) && is_array($schema['enum'])) {
@@ -151,12 +182,6 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
             }
 
             $data = $enum_items;
-        }
-
-        if (count($data) > $maxItems) {
-            return new WP_Error('rest_too_many_items', "{$name} contains more items than allowed", ['maxItems' => $maxItems, 'value' => $data]);
-        } elseif (count($data) < $minItems) {
-            return new WP_Error('rest_too_few_items', "{$name} contains less items than required", ['minItems' => $minItems, 'value' => $data]);
         }
 
         if (wp_is_numeric_array($items)) {
@@ -179,12 +204,24 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
             if (isset($items[$i])) {
                 $val = wpct_plugin_sanitize_with_schema($data[$i], $items[$i], $name . "[{$i}]");
                 if (is_wp_error($val)) {
-                    return $val;
+                    unset($data[$i]);
+                } else {
+                    $data[$i] = $val;
                 }
-
-                $data[$i] = $val;
             }
             $i++;
+        }
+
+        $data = array_values($data);
+
+        if (count($data) > $maxItems) {
+            return new WP_Error('rest_too_many_items', "{$name} contains more items than allowed", ['maxItems' => $maxItems, 'value' => $data]);
+        } elseif (count($data) < $minItems) {
+            return new WP_Error('rest_too_few_items', "{$name} contains less items than required", ['minItems' => $minItems, 'value' => $data]);
+        }
+
+        if (isset($schema['uniqueItems']) && !rest_validate_array_contains_unique_items($data)) {
+            return new WP_Error('rest_duplicate_items', "{$name} has duplicate items", ['value' => $data]);
         }
 
         return rest_sanitize_value_from_schema($data, $schema, $name);
@@ -353,4 +390,137 @@ function wpct_plugin_get_json_schema_type($value)
                 return strtolower($type);
         }
     }
+}
+
+function wpct_plugin_prune_rest_private_properties($data, $schema)
+{
+    if ($schema['anyOf']) {
+        $schema = rest_find_any_matching_schema($data, $schema, '.');
+        if (is_wp_error($schema)) {
+            return $data;
+        }
+    }
+
+    if ($schema['oneOf']) {
+        $schema = rest_find_one_matching_schema($data, $schema, '.');
+        if (is_wp_error($schema)) {
+            return $data;
+        }
+    }
+
+    if (!isset($schema['type'])) {
+        return $data;
+    }
+
+    if (isset($schema['show_in_rest'])) {
+        $a = 1;
+    }
+
+    $show_in_rest = boolval($schema['show_in_rest'] ?? true);
+    if (!$show_in_rest) {
+        return;
+    }
+
+    if ($schema['type'] === 'object') {
+        if (!is_array($data) || !isset($schema['properties'])) {
+            return $data;
+        }
+
+        foreach (array_keys($data) as $prop) {
+            $prop_schema = $schema['properties'][$prop] ?? [];
+            $value = wpct_plugin_prune_rest_private_properties($data[$prop], $prop_schema);
+            if (!$value && $value !== $data[$prop]) {
+                unset($data[$prop]);
+            }
+        }
+    } elseif ($schema['type'] === 'array') {
+        if (!wp_is_numeric_array($data) || !isset($schema['items'])) {
+            return $data;
+        }
+
+        if (wp_is_numeric_array($schema['items'])) {
+            $items = $schema['items'];
+        } else {
+            $i = 0;
+            while ($i < count($data)) {
+                $items[] = $schema['items'];
+                $i++;
+            }
+        }
+
+        for ($i = 0; $i < count($data); $i++) {
+            $value = wpct_plugin_prune_rest_private_properties($data[$i], $items[$i]);
+            if (!$value && $data[$i] !== $value) {
+                unset($data[$i]);
+            }
+        }
+
+        $data = array_values($data);
+    }
+
+    return $data;
+}
+
+function wpct_plugin_prune_rest_private_schema_properties($schema)
+{
+    if (is_array($schema['anyOf'] ?? null)) {
+        $prop_schemas = [];
+        foreach ($schema['anyOf'] as $prop_schema) {
+            $prop_schema = wpct_plugin_prune_rest_private_schema_properties($prop_schema);
+            if ($prop_schema) {
+                $schema['anyOf'][] = $prop_schema;
+            }
+        }
+
+        $schema['anyOf'] = array_values($schema['anyOf']);
+    } elseif (is_array($schema['oneOf'] ?? null)) {
+        $prop_schemas = [];
+        foreach ($schema['oneOf'] as $prop_schema) {
+            $prop_schema = wpct_plugin_prune_rest_private_schema_properties($prop_schema);
+            if ($prop_schema) {
+                $prop_schemas = $prop_schema;
+            }
+        }
+
+        $schema['oneOf'] = $prop_schemas;
+    }
+
+    if (!isset($schema['type'])) {
+        return $schema;
+    }
+
+    $show_in_rest = boolval($schema['show_in_rest'] ?? true);
+    if (!$show_in_rest) {
+        return;
+    }
+
+    if ($schema['type'] === 'object' && is_array($schema['properties'] ?? null)) {
+        foreach ($schema['properties'] as $prop => $prop_schema) {
+            $prop_schema = wpct_plugin_prune_rest_private_schema_properties($prop_schema);
+            if (!$prop_schema) {
+                unset($schema['properties'][$prop]);
+                $schema['additionalProperties'] = true;
+            }
+        }
+    } elseif ($schema['type'] === 'array' && isset($schema['items'])) {
+        if (wp_is_numeric_array($schema['items'])) {
+            $schema_items = [];
+            foreach ($schema['items'] as $schema_item) {
+                $schema_item = wpct_plugin_prune_rest_private_schema_properties($schema_item);
+                if ($schema_item) {
+                    $schema_items[] = $schema_item;
+                } else {
+                    $schema['additionalItems'] = true;
+                }
+            }
+            $schema['items'] = $schema_items;
+        } else {
+            $item_schema = wpct_plugin_prune_rest_private_schema_properties($schema['items']);
+            if (!$item_schema) {
+                return;
+            }
+        }
+    }
+
+    return $schema;
 }

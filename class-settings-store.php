@@ -215,6 +215,11 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
                 ], $schema);
 
                 $default = is_array($schema['default']) ? $schema['default'] : [];
+                foreach ($default as $prop => $value) {
+                    if (isset($schema['properties'][$prop])) {
+                        $schema['properties'][$prop]['default'] = $value;
+                    }
+                }
 
                 $setting = new Setting($group, $name, $default, $schema);
                 static::_store_setting($name, $setting);
