@@ -412,12 +412,8 @@ function wpct_plugin_prune_rest_private_properties($data, $schema)
         return $data;
     }
 
-    if (isset($schema['show_in_rest'])) {
-        $a = 1;
-    }
-
-    $show_in_rest = boolval($schema['show_in_rest'] ?? true);
-    if (!$show_in_rest) {
+    $public = boolval($schema['public'] ?? true);
+    if (!$public) {
         return;
     }
 
@@ -489,8 +485,8 @@ function wpct_plugin_prune_rest_private_schema_properties($schema)
         return $schema;
     }
 
-    $show_in_rest = boolval($schema['show_in_rest'] ?? true);
-    if (!$show_in_rest) {
+    $public = boolval($schema['public'] ?? true);
+    if (!$public) {
         return;
     }
 
