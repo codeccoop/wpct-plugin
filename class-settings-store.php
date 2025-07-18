@@ -3,7 +3,7 @@
 namespace WPCT_PLUGIN;
 
 if (!defined('ABSPATH')) {
-    exit;
+    exit();
 }
 
 if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
@@ -58,8 +58,11 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
             }
         }
 
-        final public static function use_cleaner($name, $cleaner, $priority = 10)
-        {
+        final public static function use_cleaner(
+            $name,
+            $cleaner,
+            $priority = 10
+        ) {
             if ($setting = static::setting($name)) {
                 $setting->use_cleaner($cleaner, $priority);
             }
@@ -73,7 +76,9 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
                     if (static::group() === $group) {
                         if (is_array($setting)) {
                             $settings[] = $setting;
-                        } elseif ($filter = is_callable($setting) ? $setting : null) {
+                        } elseif (
+                            $filter = is_callable($setting) ? $setting : null
+                        ) {
                             $settings = $filter($settings);
                         }
                     }
@@ -113,13 +118,19 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
             [$group] = $args;
             $this->group = $group;
 
-            static::rest_controller_class::setup($group);
+            $rest_controller_class = static::rest_controller_class;
+            $rest_controller_class::setup($group);
 
             add_action(
                 'init',
                 function () {
                     $settings = static::register_settings();
-                    do_action('wpct_plugin_registered_settings', $settings, $this->group, $this);
+                    do_action(
+                        'wpct_plugin_registered_settings',
+                        $settings,
+                        $this->group,
+                        $this
+                    );
                 },
                 10,
                 5
@@ -199,22 +210,30 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Store')) {
                     continue;
                 }
 
-                if (isset($schema['properties']) && is_array($schema['properties'])) {
+                if (
+                    isset($schema['properties']) &&
+                    is_array($schema['properties'])
+                ) {
                     $default_required = array_keys($schema['properties']);
                 }
 
-                $schema = array_merge([
-                    '$id' => $group . '_' . $name,
-                    '$schema' => 'http://json-schema.org/draft-04/schema#',
-                    'title' => "Setting {$name} of {$group}",
-                    'type' => 'object',
-                    'properties' => [],
-                    'required' => $default_required ?? [],
-                    'additionalProperties' => false,
-                    'default' => [],
-                ], $schema);
+                $schema = array_merge(
+                    [
+                        '$id' => $group . '_' . $name,
+                        '$schema' => 'http://json-schema.org/draft-04/schema#',
+                        'title' => "Setting {$name} of {$group}",
+                        'type' => 'object',
+                        'properties' => [],
+                        'required' => $default_required ?? [],
+                        'additionalProperties' => false,
+                        'default' => [],
+                    ],
+                    $schema
+                );
 
-                $default = is_array($schema['default']) ? $schema['default'] : [];
+                $default = is_array($schema['default'])
+                    ? $schema['default']
+                    : [];
                 foreach ($default as $prop => $value) {
                     if (isset($schema['properties'][$prop])) {
                         $schema['properties'][$prop]['default'] = $value;

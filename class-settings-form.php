@@ -3,7 +3,7 @@
 namespace WPCT_PLUGIN;
 
 if (!defined('ABSPATH')) {
-    exit;
+    exit();
 }
 
 if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
@@ -68,33 +68,32 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
             [$store] = $args;
             $this->store = $store;
 
-            add_action(
-                'admin_init',
-                static function () use ($store) {
-                    foreach ($store::settings() as $setting) {
-                        $setting_name = $setting->option();
-                        $section_name = $setting_name . '_section';
-                        $section_title = esc_html(
-                            static::setting_title($setting_name)
-                        );
+            add_action('admin_init', static function () use ($store) {
+                foreach ($store::settings() as $setting) {
+                    $setting_name = $setting->option();
+                    $section_name = $setting_name . '_section';
+                    $section_title = esc_html(
+                        static::setting_title($setting_name)
+                    );
 
-                        add_settings_section(
-                            $section_name,
-                            $section_title,
-                            static function () use ($setting_name) {
-                                $description = static::setting_description($setting_name);
-                                printf('<p>%s/p>', esc_html($description));
-                            },
-                            $setting_name,
-                        );
+                    add_settings_section(
+                        $section_name,
+                        $section_title,
+                        static function () use ($setting_name) {
+                            $description = static::setting_description(
+                                $setting_name
+                            );
+                            printf('<p>%s/p>', esc_html($description));
+                        },
+                        $setting_name
+                    );
 
-                        $fields = array_keys($setting->schema()['properties']);
-                        foreach ($fields as $field) {
-                            static::add_setting_field($setting, $field);
-                        }
+                    $fields = array_keys($setting->schema()['properties']);
+                    foreach ($fields as $field) {
+                        static::add_setting_field($setting, $field);
                     }
                 }
-            );
+            });
 
             add_action(
                 'admin_enqueue_scripts',
@@ -113,11 +112,11 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
                         'wpct-plugin-admin-style',
                         $plugin_url . 'admin-form.css',
                         [],
-                        '1.0.0',
+                        '1.0.0'
                     );
                 },
                 10,
-                0,
+                0
             );
         }
 
@@ -329,9 +328,15 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
             $field_id = str_replace('][', '_', $field);
             ob_start();
             ?>
-			<div id="<?php echo esc_attr($setting . '__' . $field_id . '--controls'); ?>" class="wpct-plugin-fieldset-control">
-				<button class="button button-primary" data-action="add"><?php echo esc_html(__('Add', 'wpct-plugin')); ?></button>
-				<button class="button button-secondary" data-action="remove"><?php echo esc_html(__('Remove', 'wpct-plugin')); ?></button>
+			<div id="<?php echo esc_attr(
+       $setting . '__' . $field_id . '--controls'
+   ); ?>" class="wpct-plugin-fieldset-control">
+				<button class="button button-primary" data-action="add"><?php echo esc_html(
+        __('Add', 'wpct-plugin')
+    ); ?></button>
+				<button class="button button-secondary" data-action="remove"><?php echo esc_html(
+        __('Remove', 'wpct-plugin')
+    ); ?></button>
 			</div>
 			<?php return ob_get_clean();
         }

@@ -52,8 +52,12 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
          *
          * @return WP_Error
          */
-        final protected static function error($code, $message = '', $status = 500, $data = [])
-        {
+        final protected static function error(
+            $code,
+            $message = '',
+            $status = 500,
+            $data = []
+        ) {
             $data = array_merge($data, ['status' => $status]);
             return new WP_Error((string) $code, $message, $data);
         }
@@ -78,8 +82,10 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
             return self::error('forbidden', $message, 403, $data);
         }
 
-        final protected static function internal_server_error($message = '', $data = [])
-        {
+        final protected static function internal_server_error(
+            $message = '',
+            $data = []
+        ) {
             return self::error('internal_server_error', $message, 500, $data);
         }
 
@@ -125,7 +131,11 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
 
         final public static function version()
         {
-            return (int) apply_filters('wpct_plugin_rest_version', 1, self::group());
+            return (int) apply_filters(
+                'wpct_plugin_rest_version',
+                1,
+                self::group()
+            );
         }
 
         final protected static function settings()
@@ -146,7 +156,7 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
             $schema = self::schema();
             foreach ($schema['properties'] as $prop => $prop_schema) {
                 $args[$prop] = $prop_schema;
-                $args[$prop]['sanitize_callback'] = fn ($data) => $data;
+                $args[$prop]['sanitize_callback'] = fn($data) => $data;
                 $args[$prop]['validate_callback'] = '__return_true';
             }
 
@@ -156,14 +166,20 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
                     'callback' => static function () {
                         return self::get_settings();
                     },
-                    'permission_callback' => [self::class, 'permission_callback'],
+                    'permission_callback' => [
+                        self::class,
+                        'permission_callback',
+                    ],
                 ],
                 [
                     'methods' => WP_REST_Server::CREATABLE,
                     'callback' => static function ($request) {
                         return self::set_settings($request);
                     },
-                    'permission_callback' => [self::class, 'permission_callback'],
+                    'permission_callback' => [
+                        self::class,
+                        'permission_callback',
+                    ],
                     'validate_callback' => '__return_true',
                     'args' => $args,
                 ],
@@ -172,10 +188,15 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
                     'callback' => static function () {
                         return self::delete_settings();
                     },
-                    'permission_callback' => [self::class, 'permission_callback'],
+                    'permission_callback' => [
+                        self::class,
+                        'permission_callback',
+                    ],
                 ],
                 'schema' => static function () {
-                    return wpct_plugin_prune_rest_private_schema_properties(self::schema());
+                    return wpct_plugin_prune_rest_private_schema_properties(
+                        self::schema()
+                    );
                 },
                 // 'allow_batch' => ['v1' => false],
             ]);
@@ -200,7 +221,7 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
                 'title' => self::group(),
                 'type' => 'object',
                 'properties' => $properties,
-		'additionalProperties' => false,
+                'additionalProperties' => false,
             ];
         }
 

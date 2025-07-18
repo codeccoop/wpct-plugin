@@ -37,13 +37,21 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
     }
 
     if (!isset($schema['type'])) {
-        return new WP_Error('rest_invalid_schema', '`type` is a required attribute of a schema', $schema);
+        return new WP_Error(
+            'rest_invalid_schema',
+            '`type` is a required attribute of a schema',
+            $schema
+        );
     }
 
     if (is_array($schema['type'])) {
         $type = rest_get_best_type_for_value($data, $schema['type']);
         if (!$type) {
-            return new WP_Error('rest_invalid_type', "{$name} is not of type " . implode($schema['type']), $data);
+            return new WP_Error(
+                'rest_invalid_type',
+                "{$name} is not of type " . implode($schema['type']),
+                $data
+            );
         } else {
             $schema['type'] = $type;
         }
@@ -82,23 +90,43 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
 
     if ($schema['type'] === 'object') {
         if (!rest_is_object($data)) {
-            return new WP_Error('rest_invalid_type', "{$name} is not of type object", $data);
+            return new WP_Error(
+                'rest_invalid_type',
+                "{$name} is not of type object",
+                $data
+            );
         }
 
         $data = rest_sanitize_object($data);
 
-        $required = wp_is_numeric_array($schema['required'] ?? false) ? $schema['required'] : [];
-        $props = is_array($schema['properties'] ?? false) ? $schema['properties'] : [];
+        $required = wp_is_numeric_array($schema['required'] ?? false)
+            ? $schema['required']
+            : [];
+        $props = is_array($schema['properties'] ?? false)
+            ? $schema['properties']
+            : [];
         $additionalProperties = $schema['additionalProperties'] ?? true;
         $minProps = $schema['minProps'] ?? 0;
         $maxProps = $schema['maxProps'] ?? INF;
 
         foreach ($data as $prop => $val) {
-            $prop_schema = $props[$prop] ?? rest_find_matching_pattern_property_schema($prop, $schema, $name . '.' . $prop);
+            $prop_schema =
+                $props[$prop] ??
+                rest_find_matching_pattern_property_schema(
+                    $prop,
+                    $schema,
+                    $name . '.' . $prop
+                );
             if ($prop_schema) {
-                $is_required = in_array($prop, $required, true) || ($prop_schema['required'] ?? false) === true;
+                $is_required =
+                    in_array($prop, $required, true) ||
+                    ($prop_schema['required'] ?? false) === true;
 
-                $val = wpct_plugin_sanitize_with_schema($val, $prop_schema, $name . '.' . $prop);
+                $val = wpct_plugin_sanitize_with_schema(
+                    $val,
+                    $prop_schema,
+                    $name . '.' . $prop
+                );
                 if ($error = is_wp_error($val) ? $val : null) {
                     if (isset($props[$prop]['default'])) {
                         $data[$prop] = $props[$prop]['default'];
@@ -128,19 +156,31 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
                 } elseif ($props[$prop]['type'] === 'boolean') {
                     $data[$prop] = false;
                 } else {
-                    return new WP_Error('rest_property_required', "{$prop} is required property of {$name}", ['value' => $data]);
+                    return new WP_Error(
+                        'rest_property_required',
+                        "{$prop} is required property of {$name}",
+                        ['value' => $data]
+                    );
                 }
             }
         }
 
         foreach ($props as $prop => $prop_schema) {
-            if (isset($prop_schema['required']) && $prop_schema['required'] === true && !isset($data[$prop])) {
+            if (
+                isset($prop_schema['required']) &&
+                $prop_schema['required'] === true &&
+                !isset($data[$prop])
+            ) {
                 if (isset($prop_schema['default'])) {
                     $data[$prop] = $prop_schema['default'];
                 } elseif ($prop_schema['type'] === 'boolean') {
                     $data[$prop] = false;
                 } else {
-                    return new WP_Error('rest_property_required', "{$prop} is required property of {$name}", ['value' => $data]);
+                    return new WP_Error(
+                        'rest_property_required',
+                        "{$prop} is required property of {$name}",
+                        ['value' => $data]
+                    );
                 }
             }
         }
@@ -149,20 +189,24 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
             return new WP_Error(
                 'rest_too_few_properties',
                 "{$name} has less properties than required",
-                ['minProps' => $minProps, 'value' => $data],
+                ['minProps' => $minProps, 'value' => $data]
             );
         } elseif (count($data) < $minProps) {
             return new WP_Error(
                 'rest_too_many_properties',
                 "{$name} exceed the allowed number of properties",
-                ['maxProps' => $maxProps, 'value' => $data],
+                ['maxProps' => $maxProps, 'value' => $data]
             );
         }
 
         return rest_sanitize_value_from_schema($data, $schema);
     } elseif ($schema['type'] === 'array') {
         if (!rest_is_array($data)) {
-            return new WP_Error('rest_invalid_type', "{$name} is not of type array", ['value' => $data]);
+            return new WP_Error(
+                'rest_invalid_type',
+                "{$name} is not of type array",
+                ['value' => $data]
+            );
         }
 
         $data = rest_sanitize_array($data);
@@ -186,7 +230,11 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
 
         if (wp_is_numeric_array($items)) {
             if ($additionalItems === false && count($data) > count($items)) {
-                return new WP_Error('rest_invalid_items_count', "{$name} contains invalid count items", ['items' => $items, 'value' => $data]);
+                return new WP_Error(
+                    'rest_invalid_items_count',
+                    "{$name} contains invalid count items",
+                    ['items' => $items, 'value' => $data]
+                );
             }
         } else {
             $i = 0;
@@ -202,7 +250,11 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
         $i = 0;
         while ($i < count($data)) {
             if (isset($items[$i])) {
-                $val = wpct_plugin_sanitize_with_schema($data[$i], $items[$i], $name . "[{$i}]");
+                $val = wpct_plugin_sanitize_with_schema(
+                    $data[$i],
+                    $items[$i],
+                    $name . "[{$i}]"
+                );
                 if (is_wp_error($val)) {
                     unset($data[$i]);
                 } else {
@@ -215,13 +267,28 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
         $data = array_values($data);
 
         if (count($data) > $maxItems) {
-            return new WP_Error('rest_too_many_items', "{$name} contains more items than allowed", ['maxItems' => $maxItems, 'value' => $data]);
+            return new WP_Error(
+                'rest_too_many_items',
+                "{$name} contains more items than allowed",
+                ['maxItems' => $maxItems, 'value' => $data]
+            );
         } elseif (count($data) < $minItems) {
-            return new WP_Error('rest_too_few_items', "{$name} contains less items than required", ['minItems' => $minItems, 'value' => $data]);
+            return new WP_Error(
+                'rest_too_few_items',
+                "{$name} contains less items than required",
+                ['minItems' => $minItems, 'value' => $data]
+            );
         }
 
-        if (isset($schema['uniqueItems']) && !rest_validate_array_contains_unique_items($data)) {
-            return new WP_Error('rest_duplicate_items', "{$name} has duplicate items", ['value' => $data]);
+        if (
+            isset($schema['uniqueItems']) &&
+            !rest_validate_array_contains_unique_items($data)
+        ) {
+            return new WP_Error(
+                'rest_duplicate_items',
+                "{$name} has duplicate items",
+                ['value' => $data]
+            );
         }
 
         return rest_sanitize_value_from_schema($data, $schema, $name);
@@ -424,7 +491,10 @@ function wpct_plugin_prune_rest_private_properties($data, $schema)
 
         foreach (array_keys($data) as $prop) {
             $prop_schema = $schema['properties'][$prop] ?? [];
-            $value = wpct_plugin_prune_rest_private_properties($data[$prop], $prop_schema);
+            $value = wpct_plugin_prune_rest_private_properties(
+                $data[$prop],
+                $prop_schema
+            );
             if (!$value && $value !== $data[$prop]) {
                 unset($data[$prop]);
             }
@@ -445,7 +515,10 @@ function wpct_plugin_prune_rest_private_properties($data, $schema)
         }
 
         for ($i = 0; $i < count($data); $i++) {
-            $value = wpct_plugin_prune_rest_private_properties($data[$i], $items[$i]);
+            $value = wpct_plugin_prune_rest_private_properties(
+                $data[$i],
+                $items[$i]
+            );
             if (!$value && $data[$i] !== $value) {
                 unset($data[$i]);
             }
@@ -462,7 +535,9 @@ function wpct_plugin_prune_rest_private_schema_properties($schema)
     if (is_array($schema['anyOf'] ?? null)) {
         $prop_schemas = [];
         foreach ($schema['anyOf'] as $prop_schema) {
-            $prop_schema = wpct_plugin_prune_rest_private_schema_properties($prop_schema);
+            $prop_schema = wpct_plugin_prune_rest_private_schema_properties(
+                $prop_schema
+            );
             if ($prop_schema) {
                 $schema['anyOf'][] = $prop_schema;
             }
@@ -472,7 +547,9 @@ function wpct_plugin_prune_rest_private_schema_properties($schema)
     } elseif (is_array($schema['oneOf'] ?? null)) {
         $prop_schemas = [];
         foreach ($schema['oneOf'] as $prop_schema) {
-            $prop_schema = wpct_plugin_prune_rest_private_schema_properties($prop_schema);
+            $prop_schema = wpct_plugin_prune_rest_private_schema_properties(
+                $prop_schema
+            );
             if ($prop_schema) {
                 $prop_schemas = $prop_schema;
             }
@@ -490,9 +567,14 @@ function wpct_plugin_prune_rest_private_schema_properties($schema)
         return;
     }
 
-    if ($schema['type'] === 'object' && is_array($schema['properties'] ?? null)) {
+    if (
+        $schema['type'] === 'object' &&
+        is_array($schema['properties'] ?? null)
+    ) {
         foreach ($schema['properties'] as $prop => $prop_schema) {
-            $prop_schema = wpct_plugin_prune_rest_private_schema_properties($prop_schema);
+            $prop_schema = wpct_plugin_prune_rest_private_schema_properties(
+                $prop_schema
+            );
             if (!$prop_schema) {
                 unset($schema['properties'][$prop]);
                 $schema['additionalProperties'] = true;
@@ -502,7 +584,9 @@ function wpct_plugin_prune_rest_private_schema_properties($schema)
         if (wp_is_numeric_array($schema['items'])) {
             $schema_items = [];
             foreach ($schema['items'] as $schema_item) {
-                $schema_item = wpct_plugin_prune_rest_private_schema_properties($schema_item);
+                $schema_item = wpct_plugin_prune_rest_private_schema_properties(
+                    $schema_item
+                );
                 if ($schema_item) {
                     $schema_items[] = $schema_item;
                 } else {
@@ -511,7 +595,9 @@ function wpct_plugin_prune_rest_private_schema_properties($schema)
             }
             $schema['items'] = $schema_items;
         } else {
-            $item_schema = wpct_plugin_prune_rest_private_schema_properties($schema['items']);
+            $item_schema = wpct_plugin_prune_rest_private_schema_properties(
+                $schema['items']
+            );
             if (!$item_schema) {
                 return;
             }

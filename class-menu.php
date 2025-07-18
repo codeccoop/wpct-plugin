@@ -3,7 +3,7 @@
 namespace WPCT_PLUGIN;
 
 if (!defined('ABSPATH')) {
-    exit;
+    exit();
 }
 
 if (!class_exists('\WPCT_PLUGIN\Menu')) {
@@ -112,8 +112,8 @@ if (!class_exists('\WPCT_PLUGIN\Menu')) {
 					</nav>
 				<?php
                 settings_fields($current_tab);
-            do_settings_sections($current_tab);
-            submit_button();
+				do_settings_sections($current_tab);
+				submit_button();
             ?>
 				</form>
 			</div>

@@ -5,7 +5,7 @@ namespace WPCT_PLUGIN;
 use ReflectionClass;
 
 if (!defined('ABSPATH')) {
-    exit;
+    exit();
 }
 
 if (!class_exists('\WPCT_PLUGIN\Plugin')) {
@@ -71,23 +71,17 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
         /**
          * Plugin initializer.
          */
-        protected static function init()
-        {
-        }
+        protected static function init() {}
 
         /**
          * Plugin activation callback.
          */
-        public static function activate()
-        {
-        }
+        public static function activate() {}
 
         /**
          * Plugin deactivation callback.
          */
-        public static function deactivate()
-        {
-        }
+        public static function deactivate() {}
 
         /**
          * Public plugin's initializer.
@@ -115,18 +109,19 @@ if (!class_exists('\WPCT_PLUGIN\Plugin')) {
          */
         protected function construct(...$args)
         {
-            $this->store = static::store_class::get_instance(
-                static::slug()
-            );
+            $store_class = static::store_class;
+            $this->store = $store_class::get_instance(static::slug());
 
             if (static::is_active()) {
-                $this->menu = static::menu_class::get_instance(
+                $menu_class = static::menu_class;
+                $this->menu = $menu_class::get_instance(
                     static::name(),
                     static::slug(),
                     $this->store
                 );
 
-                $this->settings_form = static::settings_form_class::get_instance($this->store);
+                $form_class = static::settings_form_class;
+                $this->settings_form = $form_class::get_instance($this->store);
             }
 
             add_action('init', function () {
