@@ -156,7 +156,7 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
             $schema = self::schema();
             foreach ($schema['properties'] as $prop => $prop_schema) {
                 $args[$prop] = $prop_schema;
-                $args[$prop]['sanitize_callback'] = fn($data) => $data;
+                $args[$prop]['sanitize_callback'] = fn ($data) => $data;
                 $args[$prop]['validate_callback'] = '__return_true';
             }
 
@@ -253,6 +253,7 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
             try {
                 $data = $request->get_json_params();
 
+                $response = [];
                 $settings = self::settings();
                 foreach ($settings as $setting) {
                     if (!isset($data[$setting->name()])) {
@@ -261,9 +262,11 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
 
                     $to = $data[$setting->name()];
                     $setting->update($to);
+                    $setting->flush();
+                    $response[$setting->name()] = $setting->data();
                 }
 
-                return ['success' => true];
+                return $response;
             } catch (Error | Exception $e) {
                 return self::error(
                     'internal_server_error',

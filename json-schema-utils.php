@@ -12,8 +12,12 @@ if (!defined('ABSPATH')) {
  *
  * @return array|WP_Error Validation result.
  */
-function wpct_plugin_sanitize_with_schema($data, $schema, $name = 'Data')
+function wpct_plugin_sanitize_with_schema($data, $schema, $name = '.')
 {
+    if (isset($schema['value'])) {
+        return $schema['value'];
+    }
+
     if (isset($schema['anyOf'])) {
         $matching_schema = rest_find_any_matching_schema($data, $schema, $name);
         if (is_wp_error($matching_schema)) {
