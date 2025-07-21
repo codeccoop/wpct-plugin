@@ -253,7 +253,6 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
             try {
                 $data = $request->get_json_params();
 
-                $response = [];
                 $settings = self::settings();
                 foreach ($settings as $setting) {
                     if (!isset($data[$setting->name()])) {
@@ -263,6 +262,10 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
                     $to = $data[$setting->name()];
                     $setting->update($to);
                     $setting->flush();
+                }
+
+                $response = [];
+                foreach ($settings as $setting) {
                     $response[$setting->name()] = $setting->data();
                 }
 
