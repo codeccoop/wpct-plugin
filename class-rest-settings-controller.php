@@ -64,29 +64,29 @@ if (!class_exists('\WPCT_PLUGIN\REST_Settings_Controller')) {
 
         final protected static function bad_request($message = '', $data = [])
         {
-            return self::error('bad_request', $message, 400, $data);
+            return self::error('rest_bad_request', $message, 400, $data);
         }
 
         final protected static function not_found($message = '', $data = [])
         {
-            return self::error('not_found', $message, 404, $data);
+            return self::error('rest_not_found', $message, 404, $data);
         }
 
         final protected static function unauthorized($message = '', $data = [])
         {
-            return self::error('unauthorized', $message, 401, $data);
+            return self::error('rest_unauthorized', $message, 401, $data);
         }
 
         final protected static function forbidden($message = '', $data = [])
         {
-            return self::error('forbidden', $message, 403, $data);
+            return self::error('rest_forbidden', $message, 403, $data);
         }
 
         final protected static function internal_server_error(
             $message = '',
             $data = []
         ) {
-            return self::error('internal_server_error', $message, 500, $data);
+            return self::error('rest_internal_server_error', $message, 500, $data);
         }
 
         /**

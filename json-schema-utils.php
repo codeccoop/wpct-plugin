@@ -12,10 +12,10 @@ if (!defined('ABSPATH')) {
  *
  * @return array|WP_Error Validation result.
  */
-function wpct_plugin_sanitize_with_schema($data, $schema, $name = '.')
+function wpct_plugin_sanitize_with_schema($data, $schema, $name = '#')
 {
-    if (isset($schema['value'])) {
-        return $schema['value'];
+    if (isset($schema['const']) && $data !== $schema['const']) {
+        return $schema['const'];
     }
 
     if (isset($schema['anyOf'])) {
@@ -121,6 +121,7 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = '.')
                     $schema,
                     $name . '.' . $prop
                 );
+
             if ($prop_schema) {
                 $is_required =
                     in_array($prop, $required, true) ||
