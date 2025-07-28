@@ -102,7 +102,7 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
 
                     wp_enqueue_script(
                         'wpct-plugin-fieldset-control',
-                        $plugin_url . 'admin-forms.js',
+                        $plugin_url . 'admin-form.js',
                         [],
                         '1.0.0',
                         ['in_footer' => true]
