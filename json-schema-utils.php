@@ -87,8 +87,6 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = '#')
 
                 return new WP_Error('rest_invalid_value', "{$name} is invalid");
             }
-
-            return $data;
         }
     }
 
@@ -243,8 +241,9 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = '#')
             }
         } else {
             $i = 0;
+            $len = count($data);
             $_items = [];
-            while ($i < count($data)) {
+            while ($i < $len) {
                 $_items[] = $items;
                 $i++;
             }
@@ -253,7 +252,8 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = '#')
         }
 
         $i = 0;
-        while ($i < count($data)) {
+        $len = count($data);
+        while ($i < $len) {
             if (isset($items[$i])) {
                 $val = wpct_plugin_sanitize_with_schema(
                     $data[$i],
@@ -324,6 +324,18 @@ function wpct_plugin_sanitize_with_schema($data, $schema, $name = '#')
  */
 function wpct_plugin_merge_array($list, $default)
 {
+    if (!is_array($list)) {
+        if (is_array($default)) {
+            return $default;
+        }
+
+        return [];
+    }
+
+    if (!is_array($default)) {
+        return $list;
+    }
+
     return array_values(array_unique(array_merge($list, $default)));
 }
 
@@ -341,7 +353,11 @@ function wpct_plugin_merge_array($list, $default)
 function wpct_plugin_merge_collection($collection, $default, $schema = [])
 {
     if (!isset($schema['type'])) {
-        $schema['type'] = wpct_plugin_get_json_schema_type($default[0]);
+        if (isset($default[0])) {
+            $schema['type'] = wpct_plugin_get_json_schema_type($default[0]);
+        } else {
+            $schema['type'] = wpct_plugin_get_json_schema_type($collection[0]);
+        }
     }
 
     if (!in_array($schema['type'], ['array', 'object'])) {

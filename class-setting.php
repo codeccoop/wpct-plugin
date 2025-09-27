@@ -286,6 +286,7 @@ if (!class_exists('\WPCT_PLUGIN\Setting')) {
                     99,
                     0
                 );
+
                 add_settings_error(
                     $this->name(),
                     esc_attr($this->option()),
