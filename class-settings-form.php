@@ -83,7 +83,7 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
                             $description = static::setting_description(
                                 $setting_name
                             );
-                            printf('<p>%s/p>', esc_html($description));
+                            printf('<p>%s</p>', esc_html($description));
                         },
                         $setting_name
                     );
@@ -329,14 +329,14 @@ if (!class_exists('\WPCT_PLUGIN\Settings_Form')) {
             ob_start();
             ?>
 			<div id="<?php echo esc_attr(
-       $setting . '__' . $field_id . '--controls'
-   ); ?>" class="wpct-plugin-fieldset-control">
+			    $setting . '__' . $field_id . '--controls'
+			); ?>" class="wpct-plugin-fieldset-control">
 				<button class="button button-primary" data-action="add"><?php echo esc_html(
-        __('Add', 'wpct-plugin')
-    ); ?></button>
+				    __('Add', 'wpct-plugin')
+				); ?></button>
 				<button class="button button-secondary" data-action="remove"><?php echo esc_html(
-        __('Remove', 'wpct-plugin')
-    ); ?></button>
+				    __('Remove', 'wpct-plugin')
+				); ?></button>
 			</div>
 			<?php return ob_get_clean();
         }
