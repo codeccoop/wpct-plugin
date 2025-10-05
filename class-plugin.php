@@ -4,322 +4,331 @@ namespace WPCT_PLUGIN;
 
 use ReflectionClass;
 
-if (!defined('ABSPATH')) {
-    exit();
+if ( ! defined( 'ABSPATH' ) ) {
+	exit();
 }
 
-if (!class_exists('\WPCT_PLUGIN\Plugin')) {
-    require_once 'class-singleton.php';
-    require_once 'class-menu.php';
-    require_once 'class-settings-form.php';
-    require_once 'class-settings-store.php';
+if ( ! class_exists( '\WPCT_PLUGIN\Plugin' ) ) {
+	require_once 'class-singleton.php';
+	require_once 'class-menu.php';
+	require_once 'class-settings-form.php';
+	require_once 'class-settings-store.php';
 
-    /**
-     * Plugin abstract class.
-     */
-    class Plugin extends Singleton
-    {
-        /**
-         * Handles plugin's menu class name.
-         *
-         * @var string
-         */
-        protected const menu_class = '\WPCT_PLUGIN\Menu';
+	/**
+	 * Plugin abstract class.
+	 */
+	class Plugin extends Singleton {
 
-        /**
-         * Handles plugin's settings store class name.
-         *
-         * @var string
-         */
-        protected const store_class = '\WPCT_PLUGIN\Settings_Store';
 
-        /**
-         * Handles plugin's settings class name.
-         *
-         * @var string
-         */
-        protected const settings_form_class = '\WPCT_PLUGIN\Settings_Form';
+		/**
+		 * Handles plugin's menu class name.
+		 *
+		 * @var string
+		 */
+		protected const menu_class = '\WPCT_PLUGIN\Menu';
 
-        /**
-         * Handles plugin's headers data.
-         *
-         * @var string
-         */
-        private static $data;
+		/**
+		 * Handles plugin's settings store class name.
+		 *
+		 * @var string
+		 */
+		protected const store_class = '\WPCT_PLUGIN\Settings_Store';
 
-        /**
-         * Handles plugin's settings store instance.
-         *
-         * @var Settings_Store
-         */
-        private $store;
+		/**
+		 * Handles plugin's settings class name.
+		 *
+		 * @var string
+		 */
+		protected const settings_form_class = '\WPCT_PLUGIN\Settings_Form';
 
-        /**
-         * Handles plugin's menu instance.
-         *
-         * @var Menu
-         */
-        private $menu;
+		/**
+		 * Handles plugin's headers data.
+		 *
+		 * @var string
+		 */
+		private static $data;
 
-        /**
-         * Handles plugin's settings ui instance.
-         *
-         * @var Settings_Form
-         */
-        private $settings_form;
+		/**
+		 * Handles plugin's settings store instance.
+		 *
+		 * @var Settings_Store
+		 */
+		private $store;
 
-        /**
-         * Plugin initializer.
-         */
-        protected static function init() {}
+		/**
+		 * Handles plugin's menu instance.
+		 *
+		 * @var Menu
+		 */
+		private $menu;
 
-        /**
-         * Plugin activation callback.
-         */
-        public static function activate() {}
+		/**
+		 * Handles plugin's settings ui instance.
+		 *
+		 * @var Settings_Form
+		 */
+		private $settings_form;
 
-        /**
-         * Plugin deactivation callback.
-         */
-        public static function deactivate() {}
+		/**
+		 * Plugin initializer.
+		 */
+		protected static function init() {
+		}
 
-        /**
-         * Public plugin's initializer.
-         */
-        final public static function setup(...$args)
-        {
-            return static::get_instance(...$args);
-        }
+		/**
+		 * Plugin activation callback.
+		 */
+		public static function activate() {
+		}
 
-        /**
-         * Checks if some plugin is active, also in the network.
-         *
-         * @param string $plugin_name Index file of the plugin.
-         *
-         * @return boolean Activation state of the plugin.
-         */
-        final public static function is_plugin_active($plugin_name)
-        {
-            include_once ABSPATH . 'wp-admin/includes/plugin.php';
-            return is_plugin_active($plugin_name);
-        }
+		/**
+		 * Plugin deactivation callback.
+		 */
+		public static function deactivate() {
+		}
 
-        /**
-         * Plugin constructor. Bind plugin to wp init hook and load textdomain.
-         */
-        protected function construct(...$args)
-        {
-            $store_class = static::store_class;
-            $this->store = $store_class::get_instance(static::slug());
+		/**
+		 * Public plugin's initializer.
+		 */
+		final public static function setup( ...$args ) {
+			return static::get_instance( ...$args );
+		}
 
-            if (static::is_active()) {
-                $menu_class = static::menu_class;
-                $this->menu = $menu_class::get_instance(
-                    static::name(),
-                    static::slug(),
-                    $this->store
-                );
+		/**
+		 * Checks if some plugin is active, also in the network.
+		 *
+		 * @param string $plugin_name index file of the plugin
+		 *
+		 * @return bool activation state of the plugin
+		 */
+		final public static function is_plugin_active( $plugin_name ) {
+			include_once ABSPATH . 'wp-admin/includes/plugin.php';
 
-                $form_class = static::settings_form_class;
-                $this->settings_form = $form_class::get_instance($this->store);
-            }
+			return is_plugin_active( $plugin_name );
+		}
 
-            add_action('init', function () {
-                static::load_textdomain();
-                static::init();
-            });
+		/**
+		 * Plugin constructor. Bind plugin to wp init hook and load textdomain.
+		 */
+		protected function construct( ...$args ) {
+			$store_class = static::store_class;
+			$this->store = $store_class::get_instance( static::slug() );
 
-            add_filter(
-                'plugin_action_links',
-                static function ($links, $file) {
-                    if (!static::is_active()) {
-                        return $links;
-                    }
+			if ( static::is_active() ) {
+				$menu_class = static::menu_class;
+				$this->menu = $menu_class::get_instance(
+					static::name(),
+					static::slug(),
+					$this->store
+				);
 
-                    if ($file !== static::index()) {
-                        return $links;
-                    }
+				$form_class          = static::settings_form_class;
+				$this->settings_form = $form_class::get_instance( $this->store );
+			}
 
-                    $url = admin_url(
-                        'options-general.php?page=' . static::slug()
-                    );
-                    $label = __('Settings', 'wpct-plugin');
-                    $link = sprintf(
-                        '<a href="%s">%s</a>',
-                        esc_url($url),
-                        esc_html($label)
-                    );
+			add_action(
+				'init',
+				function () {
+					static::load_textdomain();
+					static::init();
+				}
+			);
 
-                    array_push($links, $link);
-                    return $links;
-                },
-                10,
-                2
-            );
+			add_filter(
+				'plugin_action_links',
+				static function ( $links, $file ) {
+					if ( ! static::is_active() ) {
+						return $links;
+					}
 
-            register_activation_hook(static::index(), function () {
-                static::activate();
-            });
+					if ( $file !== static::index() ) {
+						return $links;
+					}
 
-            register_deactivation_hook(static::index(), function () {
-                static::deactivate();
-            });
-        }
+					$url   = admin_url(
+						'options-general.php?page=' . static::slug()
+					);
+					$label = __( 'Settings', 'wpct-plugin' );
+					$link  = sprintf(
+						'<a href="%s">%s</a>',
+						esc_url( $url ),
+						esc_html( $label )
+					);
 
-        /**
-         * Plugin name getter.
-         *
-         * @return string $name Plugin name.
-         */
-        final public static function name()
-        {
-            return static::data()['Name'];
-        }
+					array_push( $links, $link );
 
-        /**
-         * Plugin slug getter.
-         *
-         * @return string $slug Plugin's textdomain alias.
-         */
-        final public static function slug()
-        {
-            return pathinfo(static::index())['filename'];
-        }
+					return $links;
+				},
+				10,
+				2
+			);
 
-        /**
-         * Plugin index getter.
-         *
-         * @return string Plugin's index file.
-         */
-        final public static function index()
-        {
-            $reflection = new ReflectionClass(static::class);
-            return plugin_basename($reflection->getFileName());
-        }
+			register_activation_hook(
+				static::index(),
+				function () {
+					static::activate();
+				}
+			);
 
-        /**
-         * Plugin's path getter.
-         *
-         * @return string
-         */
-        final public static function path()
-        {
-            $reflection = new ReflectionClass(static::class);
-            return plugin_dir_path($reflection->getFileName());
-        }
+			register_deactivation_hook(
+				static::index(),
+				function () {
+					static::deactivate();
+				}
+			);
+		}
 
-        /**
-         * Plugin's public url getter.
-         *
-         * @return string
-         */
-        final public static function url()
-        {
-            $reflection = new ReflectionClass(static::class);
-            return plugin_dir_url($reflection->getFileName());
-        }
+		/**
+		 * Plugin name getter.
+		 *
+		 * @return string $name plugin name
+		 */
+		final public static function name() {
+			return static::data()['Name'];
+		}
 
-        /**
-         * Plugin textdomain getter.
-         *
-         * @return string Plugin's textdomain.
-         */
-        final public static function textdomain()
-        {
-            return static::data()['TextDomain'];
-        }
+		/**
+		 * Plugin slug getter.
+		 *
+		 * @return string $slug plugin's textdomain alias
+		 */
+		final public static function slug() {
+			return pathinfo( static::index() )['filename'];
+		}
 
-        /**
-         * Plugin version getter.
-         *
-         * @return string Plugin's version.
-         */
-        final public static function version()
-        {
-            return static::data()['Version'];
-        }
+		/**
+		 * Plugin index getter.
+		 *
+		 * @return string plugin's index file
+		 */
+		final public static function index() {
+			$reflection = new ReflectionClass( static::class );
 
-        /**
-         * Plugin dependencies getter.
-         *
-         * @return array Plugin's dependencies.
-         */
-        final public static function dependencies()
-        {
-            $dependencies = static::data()['RequiresPlugins'];
-            if (empty($dependencies)) {
-                return [];
-            }
+			return plugin_basename( $reflection->getFileName() );
+		}
 
-            return array_map(function ($plugin) {
-                $plugin = trim($plugin);
-                return $plugin . '/' . $plugin . '.php';
-            }, explode(',', $dependencies));
-        }
+		/**
+		 * Plugin's path getter.
+		 *
+		 * @return string
+		 */
+		final public static function path() {
+			$reflection = new ReflectionClass( static::class );
 
-        /**
-         * Plugin data getter.
-         *
-         * @return array $data Plugin data.
-         */
-        private static function data()
-        {
-            include_once ABSPATH . 'wp-admin/includes/plugin.php';
-            $plugin_dir = static::path() . basename(static::index());
-            return get_plugin_data($plugin_dir, false, false);
-        }
+			return plugin_dir_path( $reflection->getFileName() );
+		}
 
-        /**
-         * Active state getter.
-         *
-         * @return boolean $is_active Plugin active state.
-         */
-        final public static function is_active()
-        {
-            return static::is_plugin_active(static::index());
-        }
+		/**
+		 * Plugin's public url getter.
+		 *
+		 * @return string
+		 */
+		final public static function url() {
+			$reflection = new ReflectionClass( static::class );
 
-        /**
-         * Load plugin textdomain.
-         */
-        private static function load_textdomain()
-        {
-            $data = static::data();
-            $domain_path =
-                isset($data['DomainPath']) && !empty($data['DomainPath'])
-                    ? $data['DomainPath']
-                    : '/languages';
+			return plugin_dir_url( $reflection->getFileName() );
+		}
 
-            load_plugin_textdomain(
-                static::textdomain(),
-                false,
-                dirname(static::index()) . $domain_path
-            );
-        }
+		/**
+		 * Plugin textdomain getter.
+		 *
+		 * @return string plugin's textdomain
+		 */
+		final public static function textdomain() {
+			return static::data()['TextDomain'];
+		}
 
-        final public static function menu()
-        {
-            static::get_instance()->menu;
-        }
+		/**
+		 * Plugin version getter.
+		 *
+		 * @return string plugin's version
+		 */
+		final public static function version() {
+			return static::data()['Version'];
+		}
 
-        final public static function store()
-        {
-            $store = static::get_instance()->store;
-            if (empty($store)) {
-                return;
-            }
+		/**
+		 * Plugin dependencies getter.
+		 *
+		 * @return array plugin's dependencies
+		 */
+		final public static function dependencies() {
+			$dependencies = static::data()['RequiresPlugins'];
 
-            return $store;
-        }
+			if ( empty( $dependencies ) ) {
+				return array();
+			}
 
-        final public static function setting($name)
-        {
-            $store = static::get_instance()->store;
-            if (empty($store)) {
-                return;
-            }
+			return array_map(
+				function ( $plugin ) {
+					$plugin = trim( $plugin );
 
-            return $store::setting($name);
-        }
-    }
+					return $plugin . '/' . $plugin . '.php';
+				},
+				explode( ',', $dependencies )
+			);
+		}
+
+		/**
+		 * Plugin data getter.
+		 *
+		 * @return array $data plugin data
+		 */
+		private static function data() {
+			include_once ABSPATH . 'wp-admin/includes/plugin.php';
+			$plugin_dir = static::path() . basename( static::index() );
+
+			return get_plugin_data( $plugin_dir, false, false );
+		}
+
+		/**
+		 * Active state getter.
+		 *
+		 * @return bool $is_active plugin active state
+		 */
+		final public static function is_active() {
+			return static::is_plugin_active( static::index() );
+		}
+
+		/**
+		 * Load plugin textdomain.
+		 */
+		private static function load_textdomain() {
+			$data        = static::data();
+			$domain_path =
+				isset( $data['DomainPath'] ) && ! empty( $data['DomainPath'] )
+					? $data['DomainPath']
+					: '/languages';
+
+			load_plugin_textdomain(
+				static::textdomain(),
+				false,
+				dirname( static::index() ) . $domain_path
+			);
+		}
+
+		final public static function menu() {
+			static::get_instance()->menu;
+		}
+
+		final public static function store() {
+			$store = static::get_instance()->store;
+
+			if ( empty( $store ) ) {
+				return;
+			}
+
+			return $store;
+		}
+
+		final public static function setting( $name ) {
+			$store = static::get_instance()->store;
+
+			if ( empty( $store ) ) {
+				return;
+			}
+
+			return $store::setting( $name );
+		}
+	}
 }

@@ -2,13 +2,16 @@
 
 namespace WPCT_PLUGIN;
 
-if (!defined('ABSPATH')) {
-    exit();
+if ( ! defined( 'ABSPATH' ) ) {
+	exit();
 }
 
-if (!class_exists('\WPCT_PLUGIN\Undefined')) {
-    /**
-     * Undefined value.
-     */
-    class Undefined {}
+if ( ! class_exists( '\WPCT_PLUGIN\Undefined' ) ) {
+	/**
+	 * Undefined value.
+	 */
+	class Undefined {
+
+
+	}
 }
