@@ -1,9 +1,9 @@
-(function() {
-	function addItem(table, fieldName) {
+(function () {
+  function addItem(table, fieldName) {
     const tbody = table.children[0];
 
-		const index = tbody.children.length;
-		const row = document.createElement("tr");
+    const index = tbody.children.length;
+    const row = document.createElement("tr");
 
     const escapedName = fieldName.replace(/\[/g, "\\[").replace(/\]/g, "\\]");
     const nameRegexp = new RegExp(`\\[${escapedName}\\]\\[\\d+\\]`, "g");
@@ -33,46 +33,46 @@
       });
     }
 
-		tbody.appendChild(row);
+    tbody.appendChild(row);
 
-		const controls = row.querySelectorAll(".wpct-plugin-fieldset-control");
-		for (const control of controls) {
+    const controls = row.querySelectorAll(".wpct-plugin-fieldset-control");
+    for (const control of controls) {
       control.removeAttribute("data-bound");
-			bindControl(control);
-		}
-	}
+      bindControl(control);
+    }
+  }
 
-	function removeItem(table) {
-		const tbody = table.children[0];
-		const rows = tbody.children;
-		if (rows.length > 1) {
-			tbody.removeChild(rows[rows.length - 1]);
-		}
-	}
+  function removeItem(table) {
+    const tbody = table.children[0];
+    const rows = tbody.children;
+    if (rows.length > 1) {
+      tbody.removeChild(rows[rows.length - 1]);
+    }
+  }
 
-	function bindControl(control) {
-		if (control.dataset.bound === "1") {
-			return;
-		}
+  function bindControl(control) {
+    if (control.dataset.bound === "1") {
+      return;
+    }
 
     const tableId = control.id.replace(/--controls$/, "");
     const fieldName = tableId.replace(/^.*__/, "").replace(/_/g, '][');
-		const buttons = control.querySelectorAll("button");
-		buttons.forEach((btn) => {
+    const buttons = control.querySelectorAll("button");
+    buttons.forEach((btn) => {
       const table = document.getElementById(tableId);
 
-			const callback = btn.dataset.action === "add" ? addItem : removeItem;
-			btn.addEventListener("click", (ev) => {
-				ev.preventDefault();
-				callback(table, fieldName);
-			});
-		});
+      const callback = btn.dataset.action === "add" ? addItem : removeItem;
+      btn.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        callback(table, fieldName);
+      });
+    });
 
-		control.dataset.bound = "1";
-	}
+    control.dataset.bound = "1";
+  }
 
-	const controls = document.querySelectorAll(".wpct-plugin-fieldset-control");
-	for (const control of controls) {
-		bindControl(control);
-	}
+  const controls = document.querySelectorAll(".wpct-plugin-fieldset-control");
+  for (const control of controls) {
+    bindControl(control);
+  }
 })();

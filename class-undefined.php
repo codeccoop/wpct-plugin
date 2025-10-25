@@ -6,12 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
 
-if ( ! class_exists( '\WPCT_PLUGIN\Undefined' ) ) {
-	/**
-	 * Undefined value.
-	 */
-	class Undefined {
-
-
-	}
-}
+/**
+ * Undefined value.
+ */
+class Undefined {}
