@@ -2,6 +2,7 @@
 
 namespace WPCT_PLUGIN;
 
+use Exception;
 use ReflectionClass;
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -216,11 +217,55 @@ class Plugin extends Singleton {
 	 * Plugin's path getter.
 	 *
 	 * @return string
+	 *
+	 * @throws Exception In case not plugin's main file found.
 	 */
 	final public static function path() {
-		$reflection    = new ReflectionClass( static::class );
-		$relative_path = plugin_basename( $reflection->getFileName() );
-		return WP_PLUGIN_DIR . '/' . explode( '/', $relative_path )[0];
+		$reflection = new ReflectionClass( static::class );
+
+		$filepath = wp_normalize_path( $reflection->getFileName() );
+
+		$is_installed = str_starts_with( $filepath, WP_PLUGIN_DIR );
+		$is_mu_installed = str_starts_with( $filepath, WPMU_PLUGIN_DIR );
+
+		if ( $is_installed ) {
+			$relative_path = plugin_basename( $filepath );
+			return WP_PLUGIN_DIR . '/' . explode( '/', $relative_path )[0];
+		} elseif ( $is_mu_installed ) {
+			$relative_path = plugin_basename( $filepath );
+			return WPMU_PLUGIN_DIR . '/' . explode( '/', $relative_path )[0];
+		} else {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+			$dirname = dirname( $filepath );
+			$name = get_plugin_data( $filepath )['Name'] ?? null;
+
+			if ( $name ) {
+				return $dirname;
+			}
+
+			while ( ! $name ) {
+				foreach ( array_diff( scandir( $dirname ), array( '.', '..' ) ) as $filename ) {
+					$filepath = $dirname . '/' . $filename;
+
+					if ( is_dir( $filepath ) || ! is_readable( $filepath ) ) {
+						continue;
+					}
+
+					$name = get_plugin_data( $filepath )['Name'] ?? null;
+
+					if ( $name ) {
+						return $dirname;
+					}
+				}
+
+				if ( dirname( $dirname ) === $dirname ) {
+					throw new Exception('Not a plugin');
+				}
+
+				$dirname = dirname( $dirname );
+			}
+		}
 	}
 
 	/**
