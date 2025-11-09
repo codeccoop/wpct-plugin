@@ -1,4 +1,12 @@
 <?php
+/**
+ * Class Plugin
+ *
+ * @package wpct-plugin
+ */
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals
+// phpcs:disable WordPress.WP.I18n.TextDomainMismatch
 
 namespace WPCT_PLUGIN;
 
@@ -18,8 +26,6 @@ require_once 'class-settings-store.php';
  * Plugin abstract class.
  */
 class Plugin extends Singleton {
-
-
 	/**
 	 * Handles plugin's menu class name.
 	 *
@@ -225,7 +231,7 @@ class Plugin extends Singleton {
 
 		$filepath = wp_normalize_path( $reflection->getFileName() );
 
-		$is_installed = str_starts_with( $filepath, WP_PLUGIN_DIR );
+		$is_installed    = str_starts_with( $filepath, WP_PLUGIN_DIR );
 		$is_mu_installed = str_starts_with( $filepath, WPMU_PLUGIN_DIR );
 
 		if ( $is_installed ) {
@@ -238,7 +244,7 @@ class Plugin extends Singleton {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 			$dirname = dirname( $filepath );
-			$name = get_plugin_data( $filepath )['Name'] ?? null;
+			$name    = get_plugin_data( $filepath )['Name'] ?? null;
 
 			if ( $name ) {
 				return $dirname;
@@ -260,7 +266,7 @@ class Plugin extends Singleton {
 				}
 
 				if ( dirname( $dirname ) === $dirname ) {
-					throw new Exception('Not a plugin');
+					throw new Exception( 'Not a plugin' );
 				}
 
 				$dirname = dirname( $dirname );

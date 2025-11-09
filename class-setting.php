@@ -1,4 +1,11 @@
 <?php
+/**
+ * Class Setting
+ *
+ * @package wpct-plugin
+ */
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals
 
 namespace WPCT_PLUGIN;
 
@@ -7,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Plugin's setting class.
+ * Setting base class.
  */
 class Setting {
 
@@ -27,13 +34,6 @@ class Setting {
 	private $name;
 
 	/**
-	 * Handle setting's default values.
-	 *
-	 * @var array setting's default values
-	 */
-	private $default;
-
-	/**
 	 * Handle setting's schema.
 	 *
 	 * @var array setting's schema
@@ -47,15 +47,20 @@ class Setting {
 	 */
 	private $data = null;
 
+	/**
+	 * Handles the a boolean value that indicates if a sanitization is taking place.
+	 *
+	 * @var boolean
+	 */
 	private $sanitizing = false;
 
 	/**
 	 * Stores setting data and bind itself to wp option hooks to update its data.
 	 *
-	 * @param string $group   setting group
-	 * @param string $name    setting name
-	 * @param array  $default setting default
-	 * @param array  $schema  setting schema
+	 * @param string $group   setting group.
+	 * @param string $name    setting name.
+	 * @param array  $default setting default.
+	 * @param array  $schema  setting schema.
 	 */
 	public function __construct( $group, $name, $default, $schema ) {
 		$this->group  = $group;
@@ -135,11 +140,11 @@ class Setting {
 	}
 
 	/**
-	 * Proxies data attributes to class attributes.
+	 * Proxy class attributes reads to setting fields.
 	 *
-	 * @param string $field field name
+	 * @param string $field Field name.
 	 *
-	 * @return mixed data field value or null
+	 * @return mixed|null Field value or null.
 	 */
 	public function __get( $field ) {
 		$data = $this->data();
@@ -147,6 +152,12 @@ class Setting {
 		return $data[ $field ] ?? null;
 	}
 
+	/**
+	 * Proxy instance attributes writes to setting fields.
+	 *
+	 * @param string     $field Setting field name.
+	 * @param mixed|null $value field value.
+	 */
 	public function __set( $field, $value ) {
 		$data           = $this->data();
 		$data[ $field ] = $value;
@@ -156,7 +167,7 @@ class Setting {
 	/**
 	 * Gets the setting group.
 	 *
-	 * @return string setting group
+	 * @return string Setting group.
 	 */
 	public function group() {
 		return $this->group;
@@ -165,7 +176,7 @@ class Setting {
 	/**
 	 * Gets the setting name.
 	 *
-	 * @return string setting name
+	 * @return string Setting name.
 	 */
 	public function name() {
 		return $this->name;
@@ -174,7 +185,7 @@ class Setting {
 	/**
 	 * Gets the concatenation of the group and the setting name.
 	 *
-	 * @return string setting full name
+	 * @return string Setting full name.
 	 */
 	public function option() {
 		return $this->group . '_' . $this->name;
@@ -183,14 +194,14 @@ class Setting {
 	/**
 	 * Setting's schema getter.
 	 *
-	 * @param string $field field name, optional
+	 * @param string $field Field name, optional.
 	 *
-	 * @return mixed schema array or field value
+	 * @return mixed Schema array or field value.
 	 */
 	public function schema( $field = null ) {
 		$schema = $this->schema;
 
-		if ( $field === null ) {
+		if ( null === $field ) {
 			return $schema;
 		}
 
@@ -200,16 +211,16 @@ class Setting {
 	/**
 	 * Setting's data getter.
 	 *
-	 * @param string $field field name, optional
+	 * @param string $field Field name, optional.
 	 *
-	 * @return mixed data array or field value
+	 * @return mixed Setting data or field value
 	 */
 	public function data( $field = null ) {
-		if ( $this->data === null ) {
+		if ( null === $this->data ) {
 			$this->data = get_option( $this->option() );
 		}
 
-		if ( $field === null ) {
+		if ( null === $field ) {
 			return $this->data;
 		}
 
@@ -219,9 +230,9 @@ class Setting {
 	/**
 	 * Registers setting data on the database.
 	 *
-	 * @param array $data setting data
+	 * @param array $data Setting data.
 	 *
-	 * @return bool true if the data was added, false otherwise
+	 * @return bool Success status.
 	 */
 	public function add( $data ) {
 		return add_option( $this->option(), $data );
@@ -230,9 +241,9 @@ class Setting {
 	/**
 	 * Updates setting data on the database.
 	 *
-	 * @param array $data new setting data
+	 * @param array $data New setting data.
 	 *
-	 * @return bool true if the data was updated, false otherwise
+	 * @return bool Success status.
 	 */
 	public function update( $data ) {
 		return update_option( $this->option(), $data );
@@ -241,16 +252,25 @@ class Setting {
 	/**
 	 * Deletes the setting from the database.
 	 *
-	 * @return bool true if the data was deleted, false otherwise
+	 * @return bool Success status.
 	 */
 	public function delete() {
 		return delete_option( $this->option() );
 	}
 
+	/**
+	 * Flush the setting cache.
+	 */
 	public function flush() {
 		$this->data = null;
 	}
 
+	/**
+	 * Internal method to be hooked on the 'pre_update_option' hook and used to prevent
+	 * setting updates after failed data sanitizations.
+	 *
+	 * @return array Setting data.
+	 */
 	public function skip_updates() {
 		remove_filter(
 			'pre_update_option_' . $this->option(),
@@ -262,14 +282,22 @@ class Setting {
 		return $this->data();
 	}
 
+	/**
+	 * Setting data sanitizer.
+	 *
+	 * @param array $data Setting data.
+	 *
+	 * @return array Sanitized data.
+	 */
 	private function sanitize( $data ) {
-		if ( $this->sanitizing === true ) {
+		if ( true === $this->sanitizing ) {
 			return $data;
 		}
 
 		$this->sanitizing = true;
-		$data             = apply_filters( 'wpct_plugin_sanitize_setting', $data, $this );
-		$data             = wpct_plugin_sanitize_with_schema( $data, $this->schema() );
+
+		$data = apply_filters( 'wpct_plugin_sanitize_setting', $data, $this );
+		$data = wpct_plugin_sanitize_with_schema( $data, $this->schema() );
 
 		if ( is_wp_error( $data ) ) {
 			add_filter(
@@ -290,6 +318,15 @@ class Setting {
 		return $data;
 	}
 
+	/**
+	 * Registers a getter callback bound to the setting data. A getter is a
+	 * function to be called each time a setting data is accessed. The getter will
+	 * recive the setting data as input argument and has to return the data as its
+	 * output. The output of the getters chain will be the public setting data.
+	 *
+	 * @param callable $getter Callback function.
+	 * @param integer  $p Priority of the callback in the getters chain.
+	 */
 	public function use_getter( $getter, $p = 10 ) {
 		if ( is_callable( $getter ) ) {
 			$option = $this->option();
@@ -298,6 +335,16 @@ class Setting {
 		}
 	}
 
+	/**
+	 * Register a setter callback bound to the setting data. A setter is a
+	 * function to be called on each setting value assignation. The setter will
+	 * receive the data as an input argument and has to return the data as its
+	 * output. The output of the setters chain will be the setting data stored once
+	 * the database.
+	 *
+	 * @param callable $setter Callback function.
+	 * @param integer  $p Priority of the callabck in the setters chain.
+	 */
 	public function use_setter( $setter, $p = 10 ) {
 		if ( is_callable( $setter ) ) {
 			$option = $this->option();
@@ -316,6 +363,13 @@ class Setting {
 		}
 	}
 
+	/**
+	 * Registers a cleaner callback bound to the setting data. A cleaner is a
+	 * function to be called each time a setting is deleted from the database.
+	 *
+	 * @param callable $cleaner Callback function.
+	 * @param integer  $p Priority of the cleaner in the cleaners chain.
+	 */
 	public function use_cleaner( $cleaner, $p = 10 ) {
 		if ( is_callable( $cleaner ) ) {
 			$option = $this->option();

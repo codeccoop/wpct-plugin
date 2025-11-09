@@ -1,4 +1,11 @@
 <?php
+/**
+ * Class Settings_Store
+ *
+ * @package wpct-plugin
+ */
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals
 
 namespace WPCT_PLUGIN;
 
@@ -13,7 +20,7 @@ require_once 'class-undefined.php';
 require_once 'json-schema-utils.php';
 
 /**
- * Plugin settings store class.
+ * Settings store base class.
  */
 class Settings_Store extends Singleton {
 
@@ -43,28 +50,59 @@ class Settings_Store extends Singleton {
 		static::get_instance()->store[ $setting_name ] = $setting;
 	}
 
+	/**
+	 * Proxy to the store settings `use_setter` hooks.
+	 *
+	 * @param string   $name Setting name.
+	 * @param callable $setter Callback function.
+	 * @param integer  $priority Priority of the callabck in the setters chain.
+	 */
 	final public static function use_setter( $name, $setter, $priority = 10 ) {
-		if ( $setting = static::setting( $name ) ) {
+		$setting = static::setting( $name );
+		if ( $setting ) {
 			$setting->use_setter( $setter, $priority );
 		}
 	}
 
+	/**
+	 * Proxy to the store settings `use_getter` hooks.
+	 *
+	 * @param string   $name Setting name.
+	 * @param callable $getter Callback function.
+	 * @param integer  $priority Priority of the callback in the getters chain.
+	 */
 	final public static function use_getter( $name, $getter, $priority = 10 ) {
-		if ( $setting = static::setting( $name ) ) {
+		$setting = static::setting( $name );
+		if ( $setting ) {
 			$setting->use_getter( $getter, $priority );
 		}
 	}
 
+	/**
+	 * Proxy to the store settings `use_cleaner` hooks.
+	 *
+	 * @param string   $name Setting name.
+	 * @param callable $cleaner Callback function.
+	 * @param integer  $priority Priority of the cleaner in the cleaners chain.
+	 */
 	final public static function use_cleaner(
 		$name,
 		$cleaner,
 		$priority = 10
 	) {
-		if ( $setting = static::setting( $name ) ) {
+		$setting = static::setting( $name );
+		if ( $setting ) {
 			$setting->use_cleaner( $cleaner, $priority );
 		}
 	}
 
+	/**
+	 * Register a setting in the store.
+	 *
+	 * @param array|callable $setting Setting's schema or a filter function. The function will be
+	 *                                called with the array of registered settings and should return
+	 *                                a new array of settings as its output.
+	 */
 	final public static function register_setting( $setting ) {
 		add_filter(
 			'wpct_plugin_register_settings',
@@ -72,9 +110,8 @@ class Settings_Store extends Singleton {
 				if ( static::group() === $group ) {
 					if ( is_array( $setting ) ) {
 						$settings[] = $setting;
-					} elseif (
-						$filter = is_callable( $setting ) ? $setting : null
-					) {
+					} elseif ( is_callable( $setting ) ) {
+						$filter   = $setting;
 						$settings = $filter( $settings );
 					}
 				}
@@ -86,6 +123,12 @@ class Settings_Store extends Singleton {
 		);
 	}
 
+	/**
+	 * Hook to execute callbacks once the settings are registered
+	 * and the store is ready.
+	 *
+	 * @param callable $callback Callback to be executed.
+	 */
 	final public static function ready( $callback ) {
 		if ( ! is_callable( $callback ) ) {
 			return;
@@ -104,9 +147,9 @@ class Settings_Store extends Singleton {
 	}
 
 	/**
-	 * Class constructor. Store the group name and hooks to pre_update_option.
+	 * Store the store group and set up init hook callbacks.
 	 *
-	 * @param string $group settings group name
+	 * @param [string] ...$args Array with setting's group name in its first position.
 	 */
 	protected function construct( ...$args ) {
 		list( $group ) = $args;
@@ -119,6 +162,7 @@ class Settings_Store extends Singleton {
 			'init',
 			function () {
 				$settings = static::register_settings();
+
 				do_action(
 					'wpct_plugin_registered_settings',
 					$settings,
@@ -132,7 +176,7 @@ class Settings_Store extends Singleton {
 	}
 
 	/**
-	 * Get settings group name.
+	 * Group name getter.
 	 *
 	 * @return string $group_name settings group name
 	 */
@@ -141,9 +185,9 @@ class Settings_Store extends Singleton {
 	}
 
 	/**
-	 * Instance's store getter
+	 * Store data getter.
 	 *
-	 * @return array
+	 * @return array<string, Setting> Array with store's settings instances.
 	 */
 	final public static function store() {
 		return static::get_instance()->store ?: array();
@@ -159,7 +203,9 @@ class Settings_Store extends Singleton {
 	}
 
 	/**
-	 * Instance's settings getter.
+	 * Store settings getter.
+	 *
+	 * @param string $name Setting name.
 	 *
 	 * @return Setting|null
 	 */
@@ -196,7 +242,8 @@ class Settings_Store extends Singleton {
 
 			$name = $schema['name'];
 
-			if ( $setting = static::setting( $name ) ) {
+			$setting = static::setting( $name );
+			if ( $setting ) {
 				$settings[] = $setting;
 				continue;
 			}

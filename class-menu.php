@@ -1,4 +1,11 @@
 <?php
+/**
+ * Class Menu
+ *
+ * @package wpct-plugin
+ */
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals
 
 namespace WPCT_PLUGIN;
 
@@ -34,9 +41,10 @@ class Menu extends Singleton {
 	/**
 	 * Class constructor. Set attributes and hooks to wp admin hooks.
 	 *
-	 * @param string $name  plugin's name
-	 * @param string $slug  plugin's slug
-	 * @param array  $store plugin's settings store instances
+	 * @param array{0: string, 1:string, 2:Settings_Store} ...$args Constructor arguments:
+	 *                                                              1. Menu name.
+	 *                                                              2. Plugin slug.
+	 *                                                              3. Plugin store.
 	 */
 	protected function construct( ...$args ) {
 		list( $name, $slug, $store ) = $args;
@@ -71,9 +79,10 @@ class Menu extends Singleton {
 	/**
 	 * Render menu page HTML.
 	 *
-	 * @param bool $echo should put render to the output buffer
+	 * @param bool $echo Control if the HTML is outputed as a return value or
+	 *                   echoed to the output buffer.
 	 *
-	 * @return string|null $render page content
+	 * @return string|null Page content.
 	 */
 	protected static function render_page( $echo = true ) {
 		$store_settings = static::store()->settings();
@@ -127,7 +136,9 @@ class Menu extends Singleton {
 			$output = ob_get_clean();
 
 			if ( $echo ) {
+				// phpcs:disable WordPress.Security.EscapeOutput
 				echo $output;
+				// phpcs:enable WordPress.Security.EscapeOutput
 			}
 
 			return $output;
@@ -163,7 +174,7 @@ class Menu extends Singleton {
 	/**
 	 * To be overwriten by the child class.
 	 *
-	 * @param string $setting_name
+	 * @param string $setting_name Setting name.
 	 *
 	 * @return string
 	 */
@@ -171,10 +182,15 @@ class Menu extends Singleton {
 		return $setting_name;
 	}
 
+	/**
+	 * Check if the current page is the plugin admin page.
+	 *
+	 * @return boolean
+	 */
 	public static function is_admin_current_page() {
 		if ( is_admin() ) {
 			$page = isset( $_GET['page'] )
-				? sanitize_text_field( $_GET['page'] )
+				? sanitize_text_field( wp_unslash( $_GET['page'] ) )
 				: null;
 			$slug = static::slug();
 

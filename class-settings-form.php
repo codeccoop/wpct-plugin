@@ -1,4 +1,12 @@
 <?php
+/**
+ * Class Settings_Form
+ *
+ * @package wpct-plugin
+ */
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals
+// phpcs:disable WordPress.WP.I18n.TextDomainMismatch
 
 namespace WPCT_PLUGIN;
 
@@ -6,6 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
 
+/**
+ * Settings form base class. Handles the admin page UI of the settings store.
+ */
 class Settings_Form extends Singleton {
 
 	/**
@@ -55,8 +66,18 @@ class Settings_Form extends Singleton {
 		);
 	}
 
+	/**
+	 * Class constructor. Gets the store instance and bind it to wp admin hooks.
+	 *
+	 * @param array{0: Settings_Store} ...$args Constructor arguments with a store instance in the first position.
+	 */
 	protected function construct( ...$args ) {
-		list($store) = $args;
+		/**
+		 * Store instance.
+		 *
+		 * @var Settings_Store
+		 */
+		$store = $args[0];
 
 		add_action(
 			'admin_init',
@@ -131,6 +152,7 @@ class Settings_Form extends Singleton {
 				$schema       = $setting->schema( $field );
 				$value        = $setting->data( $field );
 
+				// phpcs:disable WordPress.Security.EscapeOutput
 				echo static::kses(
 					static::field_render(
 						$setting_name,
@@ -139,6 +161,7 @@ class Settings_Form extends Singleton {
 						$value
 					)
 				);
+				// phpcs:enable WordPress.Security.EscapeOutput
 			},
 			$setting_name,
 			$setting_name . '_section'
@@ -156,9 +179,9 @@ class Settings_Form extends Singleton {
 	 * @return string
 	 */
 	private static function field_render( $setting, $field, $schema, $value ) {
-		if ( ! in_array( $schema['type'], array( 'array', 'object' ) ) ) {
+		if ( ! in_array( $schema['type'], array( 'array', 'object' ), true ) ) {
 			return static::input_render( $setting, $field, $schema, $value );
-		} elseif ( $schema['type'] === 'array' && isset( $schema['enum'] ) ) {
+		} elseif ( 'array' === $schema['type'] && isset( $schema['enum'] ) ) {
 			return self::input_render( $setting, $field, $schema, $value );
 		} else {
 			$fieldset = static::fieldset_render(
@@ -167,7 +190,7 @@ class Settings_Form extends Singleton {
 				$schema,
 				$value
 			);
-			if ( $schema['type'] === 'array' ) {
+			if ( 'array' === $schema['type'] ) {
 				$fieldset .= static::control_render( $setting, $field );
 			}
 			return $fieldset;
@@ -190,53 +213,46 @@ class Settings_Form extends Singleton {
 		$schema,
 		$value
 	) {
-		if ( $schema['type'] === 'boolean' ) {
+		if ( 'boolean' === $schema['type'] ) {
 			return sprintf(
 				'<input type="checkbox" name="%s" ' .
 					( $value ? 'checked="true"' : '' ) .
 					' />',
 				esc_attr( $setting . "[{$field}]" )
 			);
-		} elseif ( $schema['type'] === 'string' && isset( $schema['enum'] ) ) {
-			$options = implode(
-				'',
-				array_map(
-					function ( $opt ) use ( $value ) {
-						$is_selected = $value === $opt;
-						return sprintf(
-							'<option value="%s" %s>%s</option>',
-							esc_attr( $opt ),
-							$is_selected ? 'selected' : '',
-							esc_html( $opt )
-						);
-					},
-					(array) $schema['enum']
-				)
-			);
+		} elseif ( 'string' === $schema['type'] && isset( $schema['enum'] ) && is_array( $schema['enum'] ) ) {
+			$options = '';
+
+			$enum_opts = (array) $schema['enum'];
+			foreach ( $enum_opts as $opt ) {
+				$is_selected = $opt === $value;
+				$options    .= sprintf(
+					'<option value="%s" %s>%s</option>',
+					esc_attr( $opt ),
+					$is_selected ? 'selected' : '',
+					esc_html( $opt )
+				);
+			}
 
 			return sprintf(
 				'<select name="%s">%s</select>',
 				esc_attr( $setting . "[{$field}]" ),
 				$options
 			);
-		} elseif ( $schema['type'] === 'array' && isset( $schema['enum'] ) ) {
-			$value = (array) $value;
+		} elseif ( 'array' === $schema['type'] && isset( $schema['enum'] ) ) {
+			$value   = (array) $value;
+			$options = '';
 
-			$options = implode(
-				'',
-				array_map(
-					function ( $opt ) use ( $value ) {
-						$is_selected = in_array( $opt, $value );
-						return sprintf(
-							'<option value="%s" %s>%s</option>',
-							esc_attr( $opt ),
-							$is_selected ? 'selected' : '',
-							esc_html( $opt )
-						);
-					},
-					(array) $schema['enum']
-				)
-			);
+			$enum_opts = (array) $schema['enum'];
+			foreach ( $enum_opts as $opt ) {
+				$is_selected = in_array( $opt, $value, true );
+				$options    .= sprintf(
+					'<option value="%s" %s>%s</option>',
+					esc_attr( $opt ),
+					$is_selected ? 'selected' : '',
+					esc_html( $opt )
+				);
+			}
 
 			return sprintf(
 				'<select name="%s[]" multiple required>%s</select>',
@@ -268,7 +284,7 @@ class Settings_Form extends Singleton {
 		$schema,
 		$value
 	) {
-		$is_list = $schema['type'] === 'array';
+		$is_list = 'array' === $schema['type'];
 
 		$table_id = $setting . '__' . str_replace( '][', '_', $field );
 		$fieldset = '<table id="' . esc_attr( $table_id ) . '"';
@@ -289,7 +305,7 @@ class Settings_Form extends Singleton {
 				$key = (int) $key;
 			}
 
-			if ( $schema['type'] === 'object' ) {
+			if ( 'object' === $schema['type'] ) {
 				$sub_schema = $schema['properties'][ $key ];
 			} else {
 				$sub_schema = $schema['items'];
@@ -354,7 +370,7 @@ class Settings_Form extends Singleton {
 	 * To be overwriten by the child class. Should return the localized setting title
 	 * for the menu page.
 	 *
-	 * @param string $setting_name
+	 * @param string $setting_name Setting name.
 	 *
 	 * @return string
 	 */
@@ -366,7 +382,7 @@ class Settings_Form extends Singleton {
 	 * To be overwriten by the child class. Should return the localized setting description
 	 * for the menu page.
 	 *
-	 * @param string $setting_name
+	 * @param string $setting_name Setting name.
 	 *
 	 * @return string
 	 */

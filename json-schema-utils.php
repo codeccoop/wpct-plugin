@@ -1,4 +1,11 @@
 <?php
+/**
+ * JSON Schema util functions
+ *
+ * @package wpct-plugin
+ */
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit();
@@ -7,8 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Applies validation and sanitization to data based on json schemas.
  *
- * @param array $data   target data
- * @param array $schema JSON schema
+ * @param array  $data   Target data.
+ * @param array  $schema JSON schema.
+ * @param string $name   Self name.
  *
  * @return array|WP_Error validation result
  */
@@ -63,37 +71,35 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 		}
 	}
 
-	if ( $sanitize_callback = $schema['sanitize_callback'] ?? null ) {
-		if ( is_callable( $sanitize_callback ) ) {
-			$data = $sanitize_callback( $data, $schema, $name );
+	$sanitize_callback = $schema['sanitize_callback'] ?? null;
+	if ( is_callable( $sanitize_callback ) ) {
+		$data = $sanitize_callback( $data, $schema, $name );
 
-			if ( ! $data || is_wp_error( $data ) ) {
-				if ( isset( $schema['default'] ) ) {
-					return $schema['default'];
-				}
-
-				return new WP_Error( 'rest_invalid_value', "{$name} is invalid" );
+		if ( ! $data || is_wp_error( $data ) ) {
+			if ( isset( $schema['default'] ) ) {
+				return $schema['default'];
 			}
 
-			return $data;
+			return new WP_Error( 'rest_invalid_value', "{$name} is invalid" );
+		}
+
+		return $data;
+	}
+
+	$validate_callback = $schema['validate_callback'] ?? null;
+	if ( is_callable( $validate_callback ) ) {
+		$is_valid = $validate_callback( $data, $schema, $name );
+
+		if ( ! $is_valid || is_wp_error( $is_valid ) ) {
+			if ( isset( $schema['default'] ) ) {
+				return $schema['default'];
+			}
+
+			return new WP_Error( 'rest_invalid_value', "{$name} is invalid" );
 		}
 	}
 
-	if ( $validate_callback = $schema['validate_callback'] ?? null ) {
-		if ( is_callable( $validate_callback ) ) {
-			$is_valid = $validate_callback( $data, $schema, $name );
-
-			if ( ! $is_valid || is_wp_error( $is_valid ) ) {
-				if ( isset( $schema['default'] ) ) {
-					return $schema['default'];
-				}
-
-				return new WP_Error( 'rest_invalid_value', "{$name} is invalid" );
-			}
-		}
-	}
-
-	if ( $schema['type'] === 'object' ) {
+	if ( 'object' === $schema['type'] ) {
 		if ( ! rest_is_object( $data ) ) {
 			return new WP_Error(
 				'rest_invalid_type',
@@ -104,15 +110,17 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 
 		$data = rest_sanitize_object( $data );
 
-		$required             = wp_is_numeric_array( $schema['required'] ?? false )
+		$required = wp_is_numeric_array( $schema['required'] ?? false )
 			? $schema['required']
 			: array();
-		$props                = is_array( $schema['properties'] ?? false )
+
+		$props = is_array( $schema['properties'] ?? false )
 			? $schema['properties']
 			: array();
-		$additionalProperties = $schema['additionalProperties'] ?? true;
-		$minProps             = $schema['minProps'] ?? 0;
-		$maxProps             = $schema['maxProps'] ?? INF;
+
+		$additional_properties = $schema['additionalProperties'] ?? true;
+		$min_props             = $schema['minProps'] ?? 0;
+		$max_props             = $schema['maxProps'] ?? INF;
 
 		foreach ( $data as $prop => $val ) {
 			$prop_schema =
@@ -134,7 +142,9 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 					$name . '.' . $prop
 				);
 
-				if ( $error = is_wp_error( $val ) ? $val : null ) {
+				if ( is_wp_error( $val ) ) {
+					$error = $val;
+
 					if ( isset( $props[ $prop ]['default'] ) ) {
 						$data[ $prop ] = $props[ $prop ]['default'];
 					} elseif ( ! $is_required ) {
@@ -150,9 +160,8 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 					$index = array_search( $prop, $required, true );
 					array_splice( $required, $index, 1 );
 				}
-			} elseif ( $additionalProperties === false ) {
+			} elseif ( false === $additional_properties ) {
 				unset( $data[ $prop ] );
-				// return new WP_Error('rest_additional_properties_forbidden', "{$prop} is not a valid property of {$name}", ['value' => $data]);
 			}
 		}
 
@@ -160,7 +169,7 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 			foreach ( $required as $prop ) {
 				if ( isset( $props[ $prop ]['default'] ) ) {
 					$data[ $prop ] = $props[ $prop ]['default'];
-				} elseif ( $props[ $prop ]['type'] === 'boolean' ) {
+				} elseif ( 'boolean' === $props[ $prop ]['type'] ) {
 					$data[ $prop ] = false;
 				} else {
 					return new WP_Error(
@@ -175,12 +184,12 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 		foreach ( $props as $prop => $prop_schema ) {
 			if (
 				isset( $prop_schema['required'] ) &&
-				$prop_schema['required'] === true &&
+				true === $prop_schema['required'] &&
 				! isset( $data[ $prop ] )
 			) {
 				if ( isset( $prop_schema['default'] ) ) {
 					$data[ $prop ] = $prop_schema['default'];
-				} elseif ( $prop_schema['type'] === 'boolean' ) {
+				} elseif ( 'boolean' === $prop_schema['type'] ) {
 					$data[ $prop ] = false;
 				} else {
 					return new WP_Error(
@@ -192,28 +201,28 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 			}
 		}
 
-		if ( count( $data ) > $maxProps ) {
+		if ( count( $data ) < $min_props ) {
 			return new WP_Error(
 				'rest_too_few_properties',
 				"{$name} has less properties than required",
 				array(
-					'minProps' => $minProps,
+					'minProps' => $min_props,
 					'value'    => $data,
 				)
 			);
-		} elseif ( count( $data ) < $minProps ) {
+		} elseif ( count( $data ) > $max_props ) {
 			return new WP_Error(
 				'rest_too_many_properties',
 				"{$name} exceed the allowed number of properties",
 				array(
-					'maxProps' => $maxProps,
+					'maxProps' => $max_props,
 					'value'    => $data,
 				)
 			);
 		}
 
 		return rest_sanitize_value_from_schema( $data, $schema );
-	} elseif ( $schema['type'] === 'array' ) {
+	} elseif ( 'array' === $schema['type'] ) {
 		if ( ! rest_is_array( $data ) ) {
 			return new WP_Error(
 				'rest_invalid_type',
@@ -224,12 +233,12 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 
 		$data = rest_sanitize_array( $data );
 
-		$items           = $schema['items'] ?? array();
-		$additionalItems = $data['additionalItems'] ?? true;
-		$minItems        = $schema['minItems'] ?? 0;
-		$maxItems        = $schema['maxItems'] ?? INF;
+		$items            = $schema['items'] ?? array();
+		$additional_items = $data['additionalItems'] ?? true;
+		$min_items        = $schema['minItems'] ?? 0;
+		$max_items        = $schema['maxItems'] ?? INF;
 
-		// support for array enums
+		// support for array enums.
 		if ( isset( $schema['enum'] ) && is_array( $schema['enum'] ) ) {
 			$enum_items = array();
 
@@ -243,7 +252,7 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 		}
 
 		if ( wp_is_numeric_array( $items ) ) {
-			if ( $additionalItems === false && count( $data ) > count( $items ) ) {
+			if ( false === $additional_items && count( $data ) > count( $items ) ) {
 				return new WP_Error(
 					'rest_invalid_items_count',
 					"{$name} contains invalid count items",
@@ -288,21 +297,21 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 
 		$data = array_values( $data );
 
-		if ( count( $data ) > $maxItems ) {
+		if ( count( $data ) > $max_items ) {
 			return new WP_Error(
 				'rest_too_many_items',
 				"{$name} contains more items than allowed",
 				array(
-					'maxItems' => $maxItems,
+					'maxItems' => $max_items,
 					'value'    => $data,
 				)
 			);
-		} elseif ( count( $data ) < $minItems ) {
+		} elseif ( count( $data ) < $min_items ) {
 			return new WP_Error(
 				'rest_too_few_items',
 				"{$name} contains less items than required",
 				array(
-					'minItems' => $minItems,
+					'minItems' => $min_items,
 					'value'    => $data,
 				)
 			);
@@ -320,13 +329,14 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 		}
 
 		return rest_sanitize_value_from_schema( $data, $schema, $name );
-	} elseif ( $schema['type'] === 'boolean' ) {
+	} elseif ( 'boolean' === $schema['type'] ) {
 		$data = (bool) $data;
 	}
 
 	$is_valid = rest_validate_value_from_schema( $data, $schema, $name );
 
-	if ( $error = is_wp_error( $is_valid ) ? $is_valid : null ) {
+	$error = is_wp_error( $is_valid ) ? $is_valid : null;
+	if ( $error ) {
 		if ( isset( $schema['default'] ) ) {
 			return $schema['default'];
 		}
@@ -341,8 +351,8 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
  * Merge numeric arrays with default values and returns the union of
  * the two arrays without repetitions.
  *
- * @param array $list    numeric array with values
- * @param array $default default values for the list
+ * @param array $list    Numeric array with values.
+ * @param array $default Default values for the list.
  *
  * @return array
  */
@@ -367,9 +377,9 @@ function wpct_plugin_merge_array( $list, $default ) {
  * each item of the collection and return the collection without
  * repetitions.
  *
- * @param array $collection input collection of arrays
- * @param array $default    default values for the collection
- * @param array $schema     JSON schema of the collection
+ * @param array $collection Input collection of arrays.
+ * @param array $default    Default values for the collection.
+ * @param array $schema     JSON schema of the collection.
  *
  * @return array
  */
@@ -382,15 +392,16 @@ function wpct_plugin_merge_collection( $collection, $default, $schema = array() 
 		}
 	}
 
-	if ( ! in_array( $schema['type'], array( 'array', 'object' ) ) ) {
+	if ( ! in_array( $schema['type'], array( 'array', 'object' ), true ) ) {
 		return wpct_plugin_merge_array( $collection, $default );
 	}
 
-	if ( $schema['type'] === 'object' ) {
+	if ( 'object' === $schema['type'] ) {
 		foreach ( $default as $default_item ) {
 			$col_item = null;
 
-			for ( $i = 0; $i < count( $collection ); $i++ ) {
+			$l = count( $collection );
+			for ( $i = 0; $i < $l; $i++ ) {
 				$col_item = $collection[ $i ];
 
 				if ( ! isset( $col_item['name'] ) ) {
@@ -406,7 +417,8 @@ function wpct_plugin_merge_collection( $collection, $default, $schema = array() 
 				}
 			}
 
-			if ( $i === count( $collection ) ) {
+			$c = count( $collection );
+			if ( $i === $c ) {
 				$collection[] = $default_item;
 			} else {
 				$collection[ $i ] = wpct_plugin_merge_object(
@@ -416,9 +428,11 @@ function wpct_plugin_merge_collection( $collection, $default, $schema = array() 
 				);
 			}
 		}
-	} elseif ( $schema['type'] === 'array' ) {
-		// TODO: Handle matrix case
+	// phpcs:disable Generic.CodeAnalysis.EmptyStatement
+	} elseif ( 'array' === $schema['type'] ) {
+		// TODO: Handle matrix case.
 	}
+	// phpcs:enable Generic.CodeAnalysis.EmptyStatement
 
 	return $collection;
 }
@@ -427,11 +441,11 @@ function wpct_plugin_merge_collection( $collection, $default, $schema = array() 
  * Generic array default values merger. Switches between merge_collection and merge_list
  * based on the list items' data type.
  *
- * @param array $array   input array
- * @param array $default default array values
- * @param array $schema  JSON schema of the array values
+ * @param array $array   Input array.
+ * @param array $default Default array values.
+ * @param array $schema  JSON schema of the array values.
  *
- * @return array array fullfilled with defaults
+ * @return array Array fullfilled with defaults.
  */
 function wpct_plugin_merge_object( $array, $default, $schema = array() ) {
 	foreach ( $default as $key => $default_value ) {
@@ -443,7 +457,7 @@ function wpct_plugin_merge_object( $array, $default, $schema = array() ) {
 				$schema['properties'][ $key ]['type'] ??
 				wpct_plugin_get_json_schema_type( $default_value );
 
-			if ( $type === 'object' ) {
+			if ( 'object' === $type ) {
 				if ( ! is_array( $value ) || wp_is_numeric_array( $value ) ) {
 					$array[ $key ] = $default_value;
 				} else {
@@ -453,7 +467,7 @@ function wpct_plugin_merge_object( $array, $default, $schema = array() ) {
 						$schema['properties'][ $key ] ?? array()
 					);
 				}
-			} elseif ( $type === 'array' ) {
+			} elseif ( 'array' === $type ) {
 				if ( ! wp_is_numeric_array( $value ) ) {
 					$array[ $key ] = $default_value;
 				} else {
@@ -481,9 +495,9 @@ function wpct_plugin_merge_object( $array, $default, $schema = array() ) {
 /**
  * Gets the corresponding JSON schema type from a given value.
  *
- * @param mixed $value
+ * @param mixed $value Target value.
  *
- * @return string JSON schema value type
+ * @return string JSON schema value type.
  */
 function wpct_plugin_get_json_schema_type( $value ) {
 	if ( wp_is_numeric_array( $value ) ) {
@@ -501,6 +515,14 @@ function wpct_plugin_get_json_schema_type( $value ) {
 	}
 }
 
+/**
+ * Remove private properties from an array based on a schema.
+ *
+ * @param array $data Target data.
+ * @param array $schema Data JSON schema.
+ *
+ * @return array Sanitized data.
+ */
 function wpct_plugin_prune_rest_private_properties( $data, $schema ) {
 	if ( $schema['anyOf'] ) {
 		$schema = rest_find_any_matching_schema( $data, $schema, '.' );
@@ -528,7 +550,7 @@ function wpct_plugin_prune_rest_private_properties( $data, $schema ) {
 		return;
 	}
 
-	if ( $schema['type'] === 'object' ) {
+	if ( 'object' === $schema['type'] ) {
 		if ( ! is_array( $data ) || ! isset( $schema['properties'] ) ) {
 			return $data;
 		}
@@ -544,7 +566,7 @@ function wpct_plugin_prune_rest_private_properties( $data, $schema ) {
 				unset( $data[ $prop ] );
 			}
 		}
-	} elseif ( $schema['type'] === 'array' ) {
+	} elseif ( 'array' === $schema['type'] ) {
 		if ( ! wp_is_numeric_array( $data ) || ! isset( $schema['items'] ) ) {
 			return $data;
 		}
@@ -554,13 +576,15 @@ function wpct_plugin_prune_rest_private_properties( $data, $schema ) {
 		} else {
 			$i = 0;
 
-			while ( $i < count( $data ) ) {
+			$l = count( $data );
+			while ( $i < $l ) {
 				$items[] = $schema['items'];
 				++$i;
 			}
 		}
 
-		for ( $i = 0; $i < count( $data ); $i++ ) {
+		$l = count( $data );
+		for ( $i = 0; $i < $l; $i++ ) {
 			$value = wpct_plugin_prune_rest_private_properties(
 				$data[ $i ],
 				$items[ $i ]
@@ -577,6 +601,13 @@ function wpct_plugin_prune_rest_private_properties( $data, $schema ) {
 	return $data;
 }
 
+/**
+ * Remove private properties from a JSON schema.
+ *
+ * @param array $schema Schema definition.
+ *
+ * @return array Sanitized schema.
+ */
 function wpct_plugin_prune_rest_private_schema_properties( $schema ) {
 	if ( is_array( $schema['anyOf'] ?? null ) ) {
 		$prop_schemas = array();
@@ -619,7 +650,7 @@ function wpct_plugin_prune_rest_private_schema_properties( $schema ) {
 	}
 
 	if (
-		$schema['type'] === 'object' &&
+		'object' === $schema['type'] &&
 		is_array( $schema['properties'] ?? null )
 	) {
 		foreach ( $schema['properties'] as $prop => $prop_schema ) {
@@ -632,7 +663,7 @@ function wpct_plugin_prune_rest_private_schema_properties( $schema ) {
 				$schema['additionalProperties'] = true;
 			}
 		}
-	} elseif ( $schema['type'] === 'array' && isset( $schema['items'] ) ) {
+	} elseif ( 'array' === $schema['type'] && isset( $schema['items'] ) ) {
 		if ( wp_is_numeric_array( $schema['items'] ) ) {
 			$schema_items = array();
 

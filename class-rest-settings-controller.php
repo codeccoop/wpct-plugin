@@ -1,4 +1,11 @@
 <?php
+/**
+ * Class REST_Settings_Controller
+ *
+ * @package wpct-plugin
+ */
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals
 
 namespace WPCT_PLUGIN;
 
@@ -26,13 +33,15 @@ class REST_Settings_Controller extends Singleton {
 
 	/**
 	 * Handles plugin settings instances.
+	 *
+	 * @var array
 	 */
 	private $settings = array();
 
 	/**
 	 * Setup a new rest settings controller.
 	 *
-	 * @param string $group plugin settings group name
+	 * @param string $group Plugin settings group name.
 	 *
 	 * @return object instance of REST_Controller
 	 */
@@ -43,9 +52,10 @@ class REST_Settings_Controller extends Singleton {
 	/**
 	 * Internal WP_Error proxy.
 	 *
-	 * @param string $code
-	 * @param string $message
-	 * @param mixed  $data
+	 * @param string  $code Error code.
+	 * @param string  $message Error message.
+	 * @param integer $status HTTP error status.
+	 * @param mixed   $data Error data.
 	 *
 	 * @return WP_Error
 	 */
@@ -60,22 +70,62 @@ class REST_Settings_Controller extends Singleton {
 		return new WP_Error( (string) $code, $message, $data );
 	}
 
+	/**
+	 * 400 Bad Request error constructor.
+	 *
+	 * @param string $message Error message.
+	 * @param array  $data Error data.
+	 *
+	 * @return WP_Error
+	 */
 	final public static function bad_request( $message = '', $data = array() ) {
 		return self::error( 'rest_bad_request', $message, 400, $data );
 	}
 
+	/**
+	 * 404 Not Found error constructor.
+	 *
+	 * @param string $message Error message.
+	 * @param array  $data Error data.
+	 *
+	 * @return WP_Error
+	 */
 	final public static function not_found( $message = '', $data = array() ) {
 		return self::error( 'rest_not_found', $message, 404, $data );
 	}
 
+	/**
+	 * 401 Unauthorized error constructor.
+	 *
+	 * @param string $message Error message.
+	 * @param array  $data Error data.
+	 *
+	 * @return WP_Error
+	 */
 	final public static function unauthorized( $message = '', $data = array() ) {
 		return self::error( 'rest_unauthorized', $message, 401, $data );
 	}
 
+	/**
+	 * 403 Forbidden error constructor.
+	 *
+	 * @param string $message Error message.
+	 * @param array  $data Error data.
+	 *
+	 * @return WP_Error
+	 */
 	final public static function forbidden( $message = '', $data = array() ) {
 		return self::error( 'rest_forbidden', $message, 403, $data );
 	}
 
+	/**
+	 * 500 Internal Server Error error constructor.
+	 *
+	 * @param string $message Error message.
+	 * @param array  $data Error data.
+	 *
+	 * @return WP_Error
+	 */
 	final public static function internal_server_error(
 		$message = '',
 		$data = array()
@@ -86,11 +136,10 @@ class REST_Settings_Controller extends Singleton {
 	/**
 	 * Store the group name and binds class initializer to the rest_api_init hook
 	 *
-	 * @param string $group settings group name
+	 * @param array{0: string} ...$args Constructor arguments with the group in its first position.
 	 */
 	protected function construct( ...$args ) {
-		list( $group ) = $args;
-		$this->group   = $group;
+		$this->group = $args[0];
 
 		add_action(
 			'rest_api_init',
@@ -115,14 +164,29 @@ class REST_Settings_Controller extends Singleton {
 		);
 	}
 
+	/**
+	 * Controller's group getter.
+	 *
+	 * @return string
+	 */
 	final protected static function group() {
 		return self::get_instance()->group;
 	}
 
+	/**
+	 * Controller's API namespace getter.
+	 *
+	 * @return string
+	 */
 	final public static function namespace() {
 		return apply_filters( 'wpct_plugin_rest_namespace', self::group() );
 	}
 
+	/**
+	 * Controller's API version getter.
+	 *
+	 * @return integer
+	 */
 	final public static function version() {
 		return (int) apply_filters(
 			'wpct_plugin_rest_version',
@@ -131,6 +195,11 @@ class REST_Settings_Controller extends Singleton {
 		);
 	}
 
+	/**
+	 * Controller's settings getter.
+	 *
+	 * @return Setting[]
+	 */
 	final protected static function settings() {
 		return self::get_instance()->settings;
 	}
@@ -139,7 +208,6 @@ class REST_Settings_Controller extends Singleton {
 	 * REST_Settings_Controller initializer.
 	 */
 	protected static function init() {
-		// register settings endpoint
 		$namespace = self::namespace();
 		$version   = self::version();
 
@@ -240,7 +308,7 @@ class REST_Settings_Controller extends Singleton {
 	/**
 	 * POST requests settings endpoint callback. Store settings on the options table.
 	 *
-	 * @param REST_Request $request input rest request
+	 * @param REST_Request $request input rest request.
 	 *
 	 * @return array new settings state
 	 */
@@ -277,6 +345,11 @@ class REST_Settings_Controller extends Singleton {
 		}
 	}
 
+	/**
+	 * Delete settings from the database.
+	 *
+	 * @return array Deletion result.
+	 */
 	private static function delete_settings() {
 		$settings = self::settings();
 
@@ -290,7 +363,7 @@ class REST_Settings_Controller extends Singleton {
 	/**
 	 * Check if current user can manage options.
 	 *
-	 * @return bool
+	 * @return boolean
 	 */
 	final public static function permission_callback() {
 		return current_user_can( 'manage_options' )
@@ -302,6 +375,11 @@ class REST_Settings_Controller extends Singleton {
 			);
 	}
 
+	/**
+	 * Check if the current request is a REST request to the controller's namespace.
+	 *
+	 * @return boolean
+	 */
 	public static function is_doing_rest() {
 		$ns  = static::get_instance()->namespace();
 		$uri = isset( $_SERVER['REQUEST_URI'] )

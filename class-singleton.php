@@ -1,4 +1,11 @@
 <?php
+/**
+ * Class Singleton
+ *
+ * @package wpct-plugin
+ */
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals
 
 namespace WPCT_PLUGIN;
 
@@ -16,11 +23,15 @@ abstract class Singleton {
 
 	/**
 	 * Handle singleton instances map.
+	 *
+	 * @var object[]
 	 */
-	private static $_instances = array();
+	private static $instances = array();
 
 	/**
 	 * Controlled class contructor.
+	 *
+	 * @param boolean &$singleton Pointer to a boolean handler to be set as true by the constructor.
 	 */
 	public function __construct( &$singleton ) {
 		$singleton = true;
@@ -34,6 +45,8 @@ abstract class Singleton {
 
 	/**
 	 * Prevent class serialization.
+	 *
+	 * @throws Error Each time the method is called.
 	 */
 	final public function __wakeup() {
 		throw new Error( 'Cannot unserialize a singleton.' );
@@ -41,6 +54,8 @@ abstract class Singleton {
 
 	/**
 	 * Abstract singleton class constructor.
+	 *
+	 * @param mixed[] ...$args Class constructor arguments.
 	 */
 	abstract protected function construct( ...$args );
 
@@ -48,21 +63,24 @@ abstract class Singleton {
 	 * Get class instance.
 	 *
 	 * @return object $instance class instance
+	 *
+	 * @throws Error If no instance is found.
 	 */
 	final public static function get_instance() {
 		$args = func_get_args();
 		$cls  = static::class;
 
 		if ( ! isset( self::$_instances[ $cls ] ) ) {
-			// Pass $singleton reference to prevent singleton classes constructor overwrites
-			self::$_instances[ $cls ] = new static( $singleton );
+			// Pass $singleton reference to prevent singleton classes constructor overwrites.
+			self::$instances[ $cls ] = new static( $singleton );
 
 			if ( ! $singleton ) {
 				throw new Error( 'Cannot create uncontrolled instances from a singleton.' );
 			}
-			self::$_instances[ $cls ]->construct( ...$args );
+
+			self::$instances[ $cls ]->construct( ...$args );
 		}
 
-		return self::$_instances[ $cls ];
+		return self::$instances[ $cls ];
 	}
 }
