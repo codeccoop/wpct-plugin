@@ -294,6 +294,7 @@ class Setting {
 			return $data;
 		}
 
+		$backup           = $this->data();
 		$this->sanitizing = true;
 
 		$data = apply_filters( 'wpct_plugin_sanitize_setting', $data, $this );
@@ -313,6 +314,10 @@ class Setting {
 				$data->get_error_message(),
 				'error'
 			);
+		}
+
+		if ( ! wpct_plugin_diff_arrays( $backup, $data ) ) {
+			$this->sanitizing = false;
 		}
 
 		return $data;
@@ -351,7 +356,7 @@ class Setting {
 			add_filter(
 				"sanitize_option_{$option}",
 				function ( $data ) use ( $setter ) {
-					if ( is_wp_error( $data ) ) {
+					if ( $this->sanitizing || is_wp_error( $data ) ) {
 						return $data;
 					}
 
