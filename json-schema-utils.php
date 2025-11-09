@@ -221,7 +221,7 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 			);
 		}
 
-		return rest_sanitize_value_from_schema( $data, $schema );
+		return rest_sanitize_value_from_schema( $data, $schema, $name );
 	} elseif ( 'array' === $schema['type'] ) {
 		if ( ! rest_is_array( $data ) ) {
 			return new WP_Error(
@@ -331,6 +331,24 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 		return rest_sanitize_value_from_schema( $data, $schema, $name );
 	} elseif ( 'boolean' === $schema['type'] ) {
 		$data = (bool) $data;
+	} elseif ( in_array( $schema['type'], array( 'integer', 'number' ), true ) ) {
+		$data = 'integer' === $schema['type'] ? intval( $data ) : floatval( $data );
+
+		$min = $schema['min'] ?? -INF;
+		$max = $schema['max'] ?? INF;
+
+		if ( $min > $data ) {
+			return new WP_Error(
+				'rest_value_too_small',
+				"{$name} has {$data} that is smaller than {$min}",
+				array( 'value' => $data ),
+			);
+		} elseif ( $max < $data ) {
+			return new WP_Error(
+				'rest_value_too_big',
+				"{$name} has {$data} as value that is bigger than {$max}",
+			);
+		}
 	}
 
 	$is_valid = rest_validate_value_from_schema( $data, $schema, $name );
@@ -691,4 +709,110 @@ function wpct_plugin_prune_rest_private_schema_properties( $schema ) {
 	}
 
 	return $schema;
+}
+
+/**
+ * Search for diferences between two arrays.
+ *
+ * @param array $d1 Left side of the comparission.
+ * @param array $d2 Right side of the comparission.
+ *
+ * @return boolean True if some diff are found, false otherwise.
+ *
+ * @throws TypeError If non array value is passed as input param.
+ */
+function wpct_plugin_diff_arrays( $d1, $d2 ) {
+	if ( ! ( is_array( $d1 ) && is_array( $d2 ) ) ) {
+		throw new TypeError( 'Arguments should be arrays' );
+	}
+
+	$is_numeric = wp_is_numeric_array( $d1 );
+
+	if ( $is_numeric ) {
+		if ( ! wp_is_numeric_array( $d2 ) ) {
+			return true;
+		}
+
+		return wpct_plugin_diff_lists( $d1, $d2 );
+	}
+
+	foreach ( $d1 as $key => $v1 ) {
+		if ( ! isset( $d2[ $key ] ) ) {
+			return true;
+		}
+
+		$v2 = $d2[ $key ];
+
+		$t1 = gettype( $v1 );
+		$t2 = gettype( $v2 );
+
+		if ( $t1 !== $t2 ) {
+			return true;
+		}
+
+		if ( 'object' === $t1 ) {
+			$v1 = (array) $v1;
+			$v2 = (array) $v2;
+		}
+
+		if ( is_array( $v1 ) ) {
+			if ( wpct_plugin_diff_arrays( $v1, $v2 ) ) {
+				return true;
+			}
+		} elseif ( $v1 !== $v2 ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Search for diferences between two numeric arrays.
+ *
+ * @param array $l1 Left side of the comparission.
+ * @param array $l2 Right side of the comparission.
+ *
+ * @return boolean True if some diff are found, false otherwise.
+ *
+ * @throws TypeError If non array value is passed as input param.
+ */
+function wpct_plugin_diff_lists( $l1, $l2 ) {
+	if ( ! ( wp_is_numeric_array( $l1 ) && wp_is_numeric_array( $l2 ) ) ) {
+		throw new TypeError( 'Arguments should be numeric arrays' );
+	}
+
+	$c1 = count( $l1 );
+	$c2 = count( $l2 );
+
+	if ( $c1 !== $c2 ) {
+		return true;
+	}
+
+	for ( $i = 0; $i < $c1; ++$i ) {
+		$v1 = $l1[ $i ];
+		$v2 = $l2[ $i ];
+
+		$t1 = gettype( $v1 );
+		$t2 = gettype( $v2 );
+
+		if ( $t1 !== $t2 ) {
+			return true;
+		}
+
+		if ( 'object' === $t1 ) {
+			$v1 = (array) $v1;
+			$v2 = (array) $v2;
+		}
+
+		if ( is_array( $v1 ) ) {
+			if ( wpct_plugin_diff_arrays( $v1, $v2 ) ) {
+				return true;
+			}
+		} elseif ( $v1 !== $v2 ) {
+			return true;
+		}
+	}
+
+	return false;
 }
