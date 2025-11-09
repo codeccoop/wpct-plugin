@@ -9,6 +9,8 @@
 
 namespace WPCT_PLUGIN;
 
+use ArgumentCountError;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
@@ -45,8 +47,14 @@ class Menu extends Singleton {
 	 *                                                              1. Menu name.
 	 *                                                              2. Plugin slug.
 	 *                                                              3. Plugin store.
+	 *
+	 * @throws ArgumentCountError If parameters are not passed to the constructor.
 	 */
 	protected function construct( ...$args ) {
+		if ( count( $args ) < 3 ) {
+			throw new ArgumentCountError( 'Too few arguments to Menu constructor' );
+		}
+
 		list( $name, $slug, $store ) = $args;
 		$this->name                  = $name;
 		$this->slug                  = $slug;

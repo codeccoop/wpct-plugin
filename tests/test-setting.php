@@ -12,99 +12,104 @@ use WPCT_PLUGIN\Settings_Store;
  */
 class SettingTest extends WP_UnitTestCase {
 	/**
-	 * Handle's the store name of the test case.
+	 * Handle's the store of the test case.
 	 *
-	 * @var string|null
+	 * @var WPCT_PLUGIN\Settings_Store|null
 	 */
-	private static $group = null;
-
-	public static function provider() {
-		return array(
-			'name'       => 'store-test-case',
-			'properties' => array(
-				'foo'     => array(
-					'type'    => 'string',
-					'default' => 'bar',
-				),
-				'email'   => array(
-					'type'    => 'string',
-					'format'  => 'email',
-					'default' => 'johndoe@email.me',
-				),
-				'serie'   => array(
-					'type'        => 'array',
-					'items'       => array(
-						'type'    => 'integer',
-						'min'     => 0,
-						'max'     => 10,
-						'default' => 0,
-					),
-					'uniqueItems' => true,
-					'minItems'    => 1,
-				),
-				'address' => array(
-					'type'       => 'object',
-					'properties' => array(
-						'street'  => array( 'type' => 'string' ),
-						'zip'     => array( 'type' => 'string' ),
-						'state'   => array( 'type' => 'string' ),
-						'country' => array(
-							'type'    => 'string',
-							'default' => 'ES',
-						),
-					),
-					'required'   => array(
-						'street',
-						'zip',
-						'state',
-						'country',
-					),
-				),
-			),
-			'required'   => array(
-				'foo',
-				'email',
-				'serie',
-			),
-			'default'    => array(
-				'foo'   => 'bar',
-				'email' => 'johndoe@email.me',
-				'serie' => array( 1, 2, 3, 4, 5 ),
-			),
-		);
-	}
+	public static $store = null;
 
 	public static function set_up_before_class() {
-		add_action(
-			'init',
-			function () {
-				$a = 1;
-			}
-		);
+		global $wpct_plugin_test_store;
 
-		add_filter(
-			'wpct_plugin_register_settings',
-			static function ( $settings, $group ) {
-				self::$group = $group;
-				$settings[]  = self::provider();
-				return $settings;
-			},
-			20,
-			1
-		);
+		if ( empty( $wpct_plugin_test_store ) ) {
+			throw new Exception( 'Test store is not defined' );
+		}
+
+		self::$store = $wpct_plugin_test_store;
 	}
 
-	public static function tear_down_after_class() {
-		if ( self::$group ) {
-			delete_option( self::$group . '_store-test-case' );
-		}
+	public function tear_down() {
+		$setting = self::$store::setting( 'store-test-case' );
+		$setting->delete();
 	}
 
 	public function test_setting_registry() {
-		$this->assertFalse( empty( self::$group ) );
-
-		$setting = get_option( self::$group . '_store-test-case' );
+		$setting = self::$store::setting( 'store-test-case' );
 
 		$this->assertFalse( empty( $setting ) );
+		$this->assertSame( 'bar', $setting->foo );
+		$this->assertSame( 'johndoe@email.me', $setting->email );
+		$this->assertEqualSets( array( 1, 2, 3, 4, 5 ), $setting->serie );
+	}
+
+	public function test_setting_update() {
+		$setting = self::$store::setting( 'store-test-case' );
+
+		$setting->address = array(
+			'street' => 'Elm Street',
+			'zip'    => '54321',
+			'state'  => 'CAT',
+		);
+
+		$this->assertSame( 'Elm Street', $setting->address['street'] );
+		$this->assertSame( '54321', $setting->address['zip'] );
+		$this->assertSame( 'CAT', $setting->address['state'] );
+		$this->assertSame( 'ES', $setting->address['country'] );
+	}
+
+	public function test_invalid_setting_update() {
+		$setting = self::$store::setting( 'store-test-case' );
+
+		$setting->foo = 'Alohomora';
+		$this->assertSame( 'bar', $setting->foo );
+
+		$setting->email = 'https://www.codeccoop.org';
+		$this->assertSame( 'johndoe@email.me', $setting->email );
+
+		$setting->serie = array( 101, 102, 103, 104, 105 );
+		$this->assertEqualSets( array( 1, 2, 3, 4, 5 ), $setting->serie );
+
+		$setting->address = 'foo';
+		$this->assertNull( $setting->address );
+
+		$setting->email = 'lucas@email.me';
+	}
+
+	public function test_setting_getter() {
+		$setting = self::$store::setting( 'store-test-case' );
+
+		$setting->use_getter(
+			static function ( $data ) {
+				$data['foo'] = 'boo';
+				return $data;
+			}
+		);
+
+		$data = $setting->data();
+		$this->assertSame( 'boo', $data['foo'] );
+	}
+
+	public function test_setting_setter() {
+		$setting = self::$store::setting( 'store-test-case' );
+
+		$setting->use_setter(
+			static function ( $data ) {
+				$a = 0;
+
+				foreach ( $data['serie'] as $v ) {
+					$a += $v;
+				}
+
+				$data['serie'][] = $a;
+
+				return $data;
+			},
+			9
+		);
+
+		$setting->serie = array( 1, 2, 3 );
+
+		$this->assertEquals( 4, count( $setting->serie ) );
+		$this->assertSame( 6, $setting->serie[3] );
 	}
 }

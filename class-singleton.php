@@ -70,7 +70,7 @@ abstract class Singleton {
 		$args = func_get_args();
 		$cls  = static::class;
 
-		if ( ! isset( self::$_instances[ $cls ] ) ) {
+		if ( ! isset( self::$instances[ $cls ] ) ) {
 			// Pass $singleton reference to prevent singleton classes constructor overwrites.
 			self::$instances[ $cls ] = new static( $singleton );
 

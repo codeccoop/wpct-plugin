@@ -10,6 +10,8 @@
 
 namespace WPCT_PLUGIN;
 
+use ArgumentCountError;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
@@ -70,8 +72,14 @@ class Settings_Form extends Singleton {
 	 * Class constructor. Gets the store instance and bind it to wp admin hooks.
 	 *
 	 * @param array{0: Settings_Store} ...$args Constructor arguments with a store instance in the first position.
+	 *
+	 * @throws ArgumentCountError If store is not passed as an input argument.
 	 */
 	protected function construct( ...$args ) {
+		if ( empty( $args ) ) {
+			throw new ArgumentCountError( 'Too few arguments to Settigs Form constructor' );
+		}
+
 		/**
 		 * Store instance.
 		 *

@@ -9,6 +9,8 @@
 
 namespace WPCT_PLUGIN;
 
+use ArgumentCountError;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
@@ -46,7 +48,13 @@ class Settings_Store extends Singleton {
 	 */
 	private $store = array();
 
-	private static function _store_setting( $setting_name, $setting ) {
+	/**
+	 * Add a new setting to the store.
+	 *
+	 * @param string  $setting_name Setting name.
+	 * @param Setting $setting Setting instance.
+	 */
+	private static function store_setting( $setting_name, $setting ) {
 		static::get_instance()->store[ $setting_name ] = $setting;
 	}
 
@@ -149,14 +157,19 @@ class Settings_Store extends Singleton {
 	/**
 	 * Store the store group and set up init hook callbacks.
 	 *
-	 * @param [string] ...$args Array with setting's group name in its first position.
+	 * @param aryay{0: string} ...$args Array with setting's group name in its first position.
+	 *
+	 * @throws ArgumentCountError If no group argument.
 	 */
 	protected function construct( ...$args ) {
-		list( $group ) = $args;
-		$this->group   = $group;
+		if ( empty( $args ) ) {
+			throw new ArgumentCountError( 'Too few arguments to Settigs Store constructor' );
+		}
+
+		$this->group = $args[0];
 
 		$rest_controller_class = static::REST_CONTROLLER;
-		$rest_controller_class::setup( $group );
+		$rest_controller_class::setup( $this->group );
 
 		add_action(
 			'init',
@@ -280,7 +293,7 @@ class Settings_Store extends Singleton {
 			}
 
 			$setting = new Setting( $group, $name, $default, $schema );
-			static::_store_setting( $name, $setting );
+			static::store_setting( $name, $setting );
 
 			$settings[] = $setting;
 		}
