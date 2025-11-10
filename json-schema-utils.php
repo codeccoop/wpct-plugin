@@ -328,7 +328,7 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 			);
 		}
 
-		if ( wp_is_numeric_array( $schema['items'] ) ) {
+		if ( isset( $schema['items'] ) && wp_is_numeric_array( $schema['items'] ) ) {
 			return $data;
 		}
 
