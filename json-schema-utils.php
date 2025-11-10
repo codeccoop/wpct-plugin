@@ -234,7 +234,7 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 		$data = rest_sanitize_array( $data );
 
 		$items            = $schema['items'] ?? array();
-		$additional_items = $data['additionalItems'] ?? true;
+		$additional_items = $schema['additionalItems'] ?? true;
 		$min_items        = $schema['minItems'] ?? 0;
 		$max_items        = $schema['maxItems'] ?? INF;
 
@@ -328,10 +328,14 @@ function wpct_plugin_sanitize_with_schema( $data, $schema, $name = '#' ) {
 			);
 		}
 
+		if ( wp_is_numeric_array( $schema['items'] ) ) {
+			return $data;
+		}
+
 		return rest_sanitize_value_from_schema( $data, $schema, $name );
 	} elseif ( 'boolean' === $schema['type'] ) {
 		$data = (bool) $data;
-	} elseif ( in_array( $schema['type'], array( 'integer', 'number' ), true ) ) {
+	} elseif ( in_array( $schema['type'], array( 'integer', 'number' ), true ) && is_numeric( $data ) ) {
 		$data = 'integer' === $schema['type'] ? intval( $data ) : floatval( $data );
 
 		$min = $schema['min'] ?? -INF;
