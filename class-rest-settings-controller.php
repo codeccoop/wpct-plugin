@@ -318,6 +318,19 @@ class REST_Settings_Controller extends Singleton {
 
 			$settings = self::settings();
 
+			$l = count( $settings );
+			for ( $i = 0; $i < $l; $i++ ) {
+				if ( 'general' === $settings[ $i ]->name() ) {
+					$general = $settings[ $i ];
+					array_splice( $settings, $i, 1 );
+					break;
+				}
+			}
+
+			if ( isset( $general ) ) {
+				$settings = array_merge( array( $general ), $settings );
+			}
+
 			foreach ( $settings as $setting ) {
 				if ( ! isset( $data[ $setting->name() ] ) ) {
 					continue;
