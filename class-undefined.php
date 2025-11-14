@@ -1,4 +1,11 @@
 <?php
+/**
+ * Class Undefined
+ *
+ * @package wpct-plugin
+ */
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals
 
 namespace WPCT_PLUGIN;
 
@@ -6,12 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
 
-if ( ! class_exists( '\WPCT_PLUGIN\Undefined' ) ) {
-	/**
-	 * Undefined value.
-	 */
-	class Undefined {
-
-
-	}
-}
+/**
+ * Undefined value class.
+ */
+class Undefined {}

@@ -1,4 +1,11 @@
 <?php
+/**
+ * Class Singleton
+ *
+ * @package wpct-plugin
+ */
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals
 
 namespace WPCT_PLUGIN;
 
@@ -8,63 +15,72 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit();
 }
 
-if ( ! class_exists( '\WPCT_PLUGIN\Singleton' ) ) {
+/**
+ * Singleton abstract class.
+ */
+abstract class Singleton {
+
+
 	/**
-	 * Singleton abstract class.
+	 * Handle singleton instances map.
+	 *
+	 * @var object[]
 	 */
-	abstract class Singleton {
+	private static $instances = array();
 
+	/**
+	 * Controlled class contructor.
+	 *
+	 * @param boolean &$singleton Pointer to a boolean handler to be set as true by the constructor.
+	 */
+	public function __construct( &$singleton ) {
+		$singleton = true;
+	}
 
-		/**
-		 * Handle singleton instances map.
-		 */
-		private static $_instances = array();
+	/**
+	 * Prevent class clonning.
+	 */
+	final public function __clone() {
+	}
 
-		/**
-		 * Controlled class contructor.
-		 */
-		public function __construct( &$singleton ) {
-			$singleton = true;
-		}
+	/**
+	 * Prevent class serialization.
+	 *
+	 * @throws Error Each time the method is called.
+	 */
+	final public function __wakeup() {
+		throw new Error( 'Cannot unserialize a singleton.' );
+	}
 
-		/**
-		 * Prevent class clonning.
-		 */
-		final public function __clone() {
-		}
+	/**
+	 * Abstract singleton class constructor.
+	 *
+	 * @param mixed[] ...$args Class constructor arguments.
+	 */
+	abstract protected function construct( ...$args );
 
-		/**
-		 * Prevent class serialization.
-		 */
-		final public function __wakeup() {
-			throw new Error( 'Cannot unserialize a singleton.' );
-		}
+	/**
+	 * Get class instance.
+	 *
+	 * @return object $instance class instance
+	 *
+	 * @throws Error If no instance is found.
+	 */
+	final public static function get_instance() {
+		$args = func_get_args();
+		$cls  = static::class;
 
-		/**
-		 * Abstract singleton class constructor.
-		 */
-		abstract protected function construct( ...$args );
+		if ( ! isset( self::$instances[ $cls ] ) ) {
+			// Pass $singleton reference to prevent singleton classes constructor overwrites.
+			self::$instances[ $cls ] = new static( $singleton );
 
-		/**
-		 * Get class instance.
-		 *
-		 * @return object $instance class instance
-		 */
-		final public static function get_instance() {
-			$args = func_get_args();
-			$cls  = static::class;
-
-			if ( ! isset( self::$_instances[ $cls ] ) ) {
-				// Pass $singleton reference to prevent singleton classes constructor overwrites
-				self::$_instances[ $cls ] = new static( $singleton );
-
-				if ( ! $singleton ) {
-					throw new Error( 'Cannot create uncontrolled instances from a singleton.' );
-				}
-				self::$_instances[ $cls ]->construct( ...$args );
+			if ( ! $singleton ) {
+				throw new Error( 'Cannot create uncontrolled instances from a singleton.' );
 			}
 
-			return self::$_instances[ $cls ];
+			self::$instances[ $cls ]->construct( ...$args );
 		}
+
+		return self::$instances[ $cls ];
 	}
 }
