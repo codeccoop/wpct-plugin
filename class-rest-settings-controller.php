@@ -308,7 +308,7 @@ class REST_Settings_Controller extends Singleton {
 	/**
 	 * POST requests settings endpoint callback. Store settings on the options table.
 	 *
-	 * @param REST_Request $request input rest request.
+	 * @param WP_REST_Request $request Request object.
 	 *
 	 * @return array new settings state
 	 */
