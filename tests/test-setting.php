@@ -31,6 +31,7 @@ class SettingTest extends WP_UnitTestCase {
 	public function tear_down() {
 		$setting = self::$store::setting( 'store-test-case' );
 		$setting->delete();
+		parent::tear_down();
 	}
 
 	public function test_setting_registry() {
