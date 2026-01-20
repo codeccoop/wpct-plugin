@@ -231,22 +231,24 @@ class Setting {
 	 * Registers setting data on the database.
 	 *
 	 * @param array $data Setting data.
+	 * @param bool  $autoload Whether to load the option when WordPress starts up.
 	 *
 	 * @return bool Success status.
 	 */
-	public function add( $data ) {
-		return add_option( $this->option(), $data );
+	public function add( $data, $autoload = false ) {
+		return add_option( $this->option(), $data, '', $autoload );
 	}
 
 	/**
 	 * Updates setting data on the database.
 	 *
 	 * @param array $data New setting data.
+	 * @param bool  $autoload Whether to load the option when WordPress starts up.
 	 *
 	 * @return bool Success status.
 	 */
-	public function update( $data ) {
-		return update_option( $this->option(), $data );
+	public function update( $data, $autoload = false ) {
+		return update_option( $this->option(), $data, $autoload );
 	}
 
 	/**
