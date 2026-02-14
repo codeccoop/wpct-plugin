@@ -408,9 +408,17 @@ function wpct_plugin_merge_array( $list, $default ) {
 function wpct_plugin_merge_collection( $collection, $default, $schema = array() ) {
 	if ( ! isset( $schema['type'] ) ) {
 		if ( isset( $default[0] ) ) {
-			$schema['type'] = wpct_plugin_get_json_schema_type( $default[0] );
+			$schema = array_merge(
+				$schema,
+				wpct_plugin_value_to_json_schema( $default[0] ),
+			);
+		} elseif ( isset( $collection[0] ) ) {
+			$schema = array_merge(
+				$schema,
+				wpct_plugin_value_to_json_schema( $collection[0] ),
+			);
 		} else {
-			$schema['type'] = wpct_plugin_get_json_schema_type( $collection[0] );
+			return $collection;
 		}
 	}
 
@@ -475,9 +483,9 @@ function wpct_plugin_merge_object( $array, $default, $schema = array() ) {
 			$array[ $key ] = $default_value;
 		} else {
 			$value = $array[ $key ];
-			$type  =
-				$schema['properties'][ $key ]['type'] ??
-				wpct_plugin_get_json_schema_type( $default_value );
+
+			$type = $schema['properties'][ $key ]['type']
+				?? wpct_plugin_get_json_schema_type( $default_value );
 
 			if ( 'object' === $type ) {
 				if ( ! is_array( $value ) || wp_is_numeric_array( $value ) ) {
@@ -515,6 +523,33 @@ function wpct_plugin_merge_object( $array, $default, $schema = array() ) {
 }
 
 /**
+ * Transform a PHP primitive value into a JSON schema.
+ *
+ * @param mixed $value Target value.
+ *
+ * @return array
+ */
+function wpct_plugin_value_to_json_schema( $value ) {
+	$schema = array( 'type' => wpct_plugin_get_json_schema_type( $value ) );
+
+	if ( 'array' === $schema['type'] ) {
+		if ( count( $value ) ) {
+			$schema['items'] = wpct_plugin_value_to_json_schema( $value[0] );
+		} else {
+			$schema['items'] = array( 'type' => 'null' );
+		}
+	} elseif ( 'object' === $schema['type'] ) {
+		$schema['properties'] = array();
+
+		foreach ( $value as $key => $val ) {
+			$schema['properties'][ $key ] = wpct_plugin_value_to_json_schema( $val );
+		}
+	}
+
+	return $schema;
+}
+
+/**
  * Gets the corresponding JSON schema type from a given value.
  *
  * @param mixed $value Target value.
@@ -524,16 +559,16 @@ function wpct_plugin_merge_object( $array, $default, $schema = array() ) {
 function wpct_plugin_get_json_schema_type( $value ) {
 	if ( wp_is_numeric_array( $value ) ) {
 		return 'array';
-	} elseif ( is_array( $value ) ) {
+	} elseif ( is_array( $value ) || is_object( $value ) ) {
 		return 'object';
 	} else {
-		$type = gettype( $value );
-		switch ( $type ) {
-			case 'double':
-				return 'number';
-			default:
-				return strtolower( $type );
+		$type = strtolower( gettype( $value ) );
+
+		if ( 'double' === $type ) {
+			$type = 'number';
 		}
+
+		return $type;
 	}
 }
 
